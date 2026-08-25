@@ -381,9 +381,10 @@
         </span>
     </button>
 
-    <!-- Hidden YouTube player -->
-    <div id="yt-player"
-        style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"></div>
+    <!-- YouTube player container (Positioned for iOS PWA WebKit compatibility) -->
+    <div id="yt-player-wrap" style="position:fixed;bottom:0;right:0;width:240px;height:180px;opacity:0.001;pointer-events:none;z-index:-100;overflow:hidden;">
+        <div id="yt-player"></div>
+    </div>
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- Main app -->

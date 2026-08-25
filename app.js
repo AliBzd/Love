@@ -1727,14 +1727,18 @@ function setupSparkle() {
 let _bgPlayer = null;
 let _bgPlaying = false;
 let _bgReady = false;
+let _pendingPlay = false;
 
 function startMusicOnUnlock() {
-    if (_bgReady && _bgPlayer && !_bgPlaying) {
+    _pendingPlay = true;
+    if (_bgReady && _bgPlayer) {
         try {
             _bgPlayer.playVideo();
             _bgPlaying = true;
             $('#music-btn')?.classList.add('playing');
-        } catch (e) {}
+        } catch (e) {
+            console.warn('Play error on unlock:', e);
+        }
     }
 }
 
@@ -1747,11 +1751,19 @@ function setupMusic() {
         btn.classList.add('playing');
     }
 
+    function markPaused() {
+        _bgPlaying = false;
+        btn.classList.remove('playing');
+    }
+
     window.onYouTubeIframeAPIReady = function () {
         _bgPlayer = new YT.Player('yt-player', {
             videoId: 'DF3XjEhJ40Y',
             playerVars: {
                 autoplay: 1,
+                playsinline: 1,
+                enablejsapi: 1,
+                origin: window.location.origin,
                 loop: 1,
                 playlist: 'DF3XjEhJ40Y',
                 controls: 0,
@@ -1763,25 +1775,48 @@ function setupMusic() {
             events: {
                 onReady: function () {
                     _bgReady = true;
-                    _bgPlayer.setVolume(35);
-                    _bgPlayer.playVideo();
-                    markPlaying();
+                    try {
+                        _bgPlayer.setVolume(45);
+                    } catch (e) {}
+                    if (_pendingPlay || currentUser) {
+                        try {
+                            _bgPlayer.playVideo();
+                            markPlaying();
+                        } catch (e) {}
+                    }
                 },
                 onStateChange: function (e) {
-                    if (e.data === YT.PlayerState.PLAYING && !_bgPlaying) markPlaying();
+                    if (e.data === YT.PlayerState.PLAYING) markPlaying();
+                    if (e.data === YT.PlayerState.PAUSED) markPaused();
                     if (e.data === YT.PlayerState.ENDED && _bgPlayer) _bgPlayer.playVideo();
                 },
+                onError: function (err) {
+                    console.warn('YouTube Player Error:', err);
+                }
             },
         });
     };
 
+    // User interaction audio unlocker for iOS PWA
+    const unlockAudioOnTouch = () => {
+        if (_bgReady && _bgPlayer && !_bgPlaying && currentUser) {
+            try {
+                _bgPlayer.playVideo();
+                markPlaying();
+            } catch (e) {}
+        }
+        document.removeEventListener('touchstart', unlockAudioOnTouch);
+        document.removeEventListener('click', unlockAudioOnTouch);
+    };
+    document.addEventListener('touchstart', unlockAudioOnTouch, { passive: true });
+    document.addEventListener('click', unlockAudioOnTouch, { passive: true });
+
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!_bgReady || !_bgPlayer) return;
+        if (!_bgPlayer) return;
         if (_bgPlaying) {
             _bgPlayer.pauseVideo();
-            btn.classList.remove('playing');
-            _bgPlaying = false;
+            markPaused();
         } else {
             _bgPlayer.playVideo();
             markPlaying();
