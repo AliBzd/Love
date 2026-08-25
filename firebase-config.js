@@ -1,5 +1,5 @@
 // ===================================================================
-// FATIMTI — firebase-config.js
+// AYATI — firebase-config.js
 // Data layer: localStorage (offline) + Firebase Firestore (real-time sync)
 // ===================================================================
 
@@ -7,10 +7,10 @@
 // ║  🔥 FIREBASE SETUP — Follow these steps:                       ║
 // ║                                                                  ║
 // ║  1. Go to https://console.firebase.google.com                   ║
-// ║  2. Click "Add Project" → name it "fatimti"                     ║
+// ║  2. Click "Add Project" → name it "ayati"                       ║
 // ║  3. Disable Google Analytics (not needed) → Create              ║
 // ║  4. Click the </> (Web) icon to add a web app                   ║
-// ║  5. Name it "fatimti" → Register App                            ║
+// ║  5. Name it "ayati" → Register App                              ║
 // ║  6. Copy ONLY the config values below                           ║
 // ║  7. Go to "Build" → "Firestore Database" → "Create Database"   ║
 // ║  8. Choose "Start in test mode" → pick nearest region → Done   ║
@@ -31,7 +31,7 @@ let _db = null;
 let _firebaseReady = false;
 
 // ───────── Default data ─────────
-const DEFAULT_PASSCODES = { ali: "1111", fatima: "2222" };
+const DEFAULT_PASSCODES = { ali: "1111", aya: "2222" };
 
 const DEFAULT_TIMELINE = [
     { id: "t1", date: "", title: "النهار اللي تلاقينا", description: "القدر جمعنا، و من داك النهار تبدّلات حياتي للأبد.", addedBy: "ali" },
@@ -56,7 +56,7 @@ const DEFAULT_LOVE_QUOTES = [
 // ───────── Initialize Firebase (if configured) ─────────
 async function _initFirebase() {
     try {
-        const savedFB = localStorage.getItem("fatimti_fb_config");
+        const savedFB = localStorage.getItem("ayati_fb_config");
         if (savedFB) {
             Object.assign(FIREBASE_CONFIG, JSON.parse(savedFB));
         }
@@ -96,7 +96,7 @@ function _openIDB() {
     return new Promise((resolve) => {
         if (_idb) return resolve(_idb);
         if (!window.indexedDB) return resolve(null);
-        const req = indexedDB.open("fatimti_idb", 1);
+        const req = indexedDB.open("ayati_idb", 1);
         req.onupgradeneeded = (e) => {
             e.target.result.createObjectStore("kv");
         };
@@ -113,7 +113,7 @@ async function _idbSet(key, value) {
     if (!db) return;
     return new Promise((resolve) => {
         const tx = db.transaction("kv", "readwrite");
-        tx.objectStore("kv").put(value, `fatimti_${key}`);
+        tx.objectStore("kv").put(value, `ayati_${key}`);
         tx.oncomplete = resolve;
     });
 }
@@ -123,7 +123,7 @@ async function _idbGet(key) {
     if (!db) return null;
     return new Promise((resolve) => {
         const tx = db.transaction("kv", "readonly");
-        const req = tx.objectStore("kv").get(`fatimti_${key}`);
+        const req = tx.objectStore("kv").get(`ayati_${key}`);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => resolve(null);
     });
@@ -131,13 +131,13 @@ async function _idbGet(key) {
 
 function _lsGet(key) {
     try {
-        return JSON.parse(localStorage.getItem(`fatimti_${key}`)) || null;
+        return JSON.parse(localStorage.getItem(`ayati_${key}`)) || null;
     } catch { return null; }
 }
 
 function _lsSet(key, value) {
     try {
-        localStorage.setItem(`fatimti_${key}`, JSON.stringify(value));
+        localStorage.setItem(`ayati_${key}`, JSON.stringify(value));
     } catch (e) {
         console.warn(`localStorage quota hit for ${key}, backing up to IndexedDB`);
     }
@@ -153,7 +153,7 @@ function _ensureDefaults() {
         _lsSet("memories", []);
         _lsSet("countdowns", [{ id: "main", title: "حنا مع بعضياتنا", date: "2026-05-13T00:00:00", type: "since" }]);
         _lsSet("moods_ali", []);
-        _lsSet("moods_fatima", []);
+        _lsSet("moods_aya", []);
         _lsSet("bucketlist", []);
         _lsSet("lovenotes", []);
         _lsSet("initialized", true);
@@ -183,19 +183,19 @@ const DataStore = {
 
     // ─── Auth / Session ───────────────────────────────────
     getUser() {
-        return localStorage.getItem("fatimti_user") || null;
+        return localStorage.getItem("ayati_user") || null;
     },
 
     setUser(username) {
-        localStorage.setItem("fatimti_user", username);
+        localStorage.setItem("ayati_user", username);
     },
 
     clearUser() {
-        localStorage.removeItem("fatimti_user");
+        localStorage.removeItem("ayati_user");
     },
 
     getPartner(user) {
-        return user === "ali" ? "fatima" : "ali";
+        return user === "ali" ? "aya" : "ali";
     },
 
     getPasscodes() {

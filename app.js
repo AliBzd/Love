@@ -1,11 +1,11 @@
 /* ===================================================================
-   FATIMTI — app.js
+   AYATI — app.js
    Relationship keeper: router, auth, all features
    DataStore is loaded globally from firebase-config.js
    =================================================================== */
 
 // ─── State ────────────────────────────────────────────────────────
-let currentUser = null;   // "ali" | "fatima"
+let currentUser = null;   // "ali" | "aya"
 let currentView = 'login';
 let passcodeBuffer = '';
 let selectedLoginUser = null;
@@ -52,7 +52,7 @@ function updateThemeColor(user) {
     const meta = $('meta[name="theme-color"]');
     if (!meta) return;
     if (user === 'ali') meta.content = '#2d132c';
-    else if (user === 'fatima') meta.content = '#3b0a30';
+    else if (user === 'aya') meta.content = '#3b0a30';
     else meta.content = '#1a0a1e';
 }
 
@@ -221,7 +221,7 @@ function setupLogin() {
         btn.addEventListener('click', () => {
             triggerHaptic('medium');
             selectedLoginUser = btn.dataset.user;
-            const name = selectedLoginUser === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+            const name = selectedLoginUser === 'ali' ? 'علي 💙' : 'آية 💗';
             $('#login-code-prompt').textContent = `مرحبا ${name} — دخل الكود ديالك`;
             $('#login-select').hidden = true;
             $('#login-code').hidden = false;
@@ -299,9 +299,9 @@ function verifyPasscode() {
 function loadDashboard() {
     const partner = DataStore.getPartner(currentUser);
     const isAli = currentUser === 'ali';
-    const name = isAli ? 'علي' : 'فاطمة';
-    const partnerName = isAli ? 'فاطمة' : 'علي';
-    const cssClass = isAli ? 'user-ali' : 'user-fatima';
+    const name = isAli ? 'علي' : 'آية';
+    const partnerName = isAli ? 'آية' : 'علي';
+    const cssClass = isAli ? 'user-ali' : 'user-aya';
 
     // Greeting
     $('#dash-hello').innerHTML = `مرحبا <span class="${cssClass}">${name}</span> 💕`;
@@ -367,7 +367,7 @@ async function loadLetters() {
 
     container.innerHTML = letters.map(l => {
         const isUnread = l.to === currentUser && !l.read;
-        const fromName = l.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+        const fromName = l.from === 'ali' ? 'علي 💙' : 'آية 💗';
         const date = new Date(l.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
         return `
             <div class="letter-item glass ${isUnread ? 'unread' : ''}" data-letter-id="${l.id}">
@@ -395,7 +395,7 @@ async function openLetter(id) {
         await DataStore.update('letters', id, { read: true });
     }
 
-    const fromName = letter.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+    const fromName = letter.from === 'ali' ? 'علي 💙' : 'آية 💗';
     const date = new Date(letter.createdAt).toLocaleDateString('ar-MA', {
         day: 'numeric', month: 'long', year: 'numeric'
     });
@@ -418,7 +418,7 @@ async function openLetter(id) {
 
 function createLetterForm() {
     const partner = DataStore.getPartner(currentUser);
-    const partnerName = partner === 'ali' ? 'علي' : 'فاطمة';
+    const partnerName = partner === 'ali' ? 'علي' : 'آية';
     return `
         <h3 class="modal-title">كتب رسالة لـ ${partnerName} 💌</h3>
         <div class="form-group">
@@ -630,7 +630,7 @@ function createCountdownForm() {
 async function loadMood() {
     const container = $('#mood-content');
     const partner = DataStore.getPartner(currentUser);
-    const partnerName = partner === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+    const partnerName = partner === 'ali' ? 'علي 💙' : 'آية 💗';
 
     const todayMood = await DataStore.getTodayMood(currentUser);
     const partnerMood = await DataStore.getTodayMood(partner);
@@ -714,7 +714,7 @@ async function loadBucketList() {
     }
 
     container.innerHTML = items.map(item => {
-        const by = item.addedBy === 'ali' ? 'علي' : 'فاطمة';
+        const by = item.addedBy === 'ali' ? 'علي' : 'آية';
         return `
             <div class="bucket-item glass ${item.completed ? 'done' : ''}" data-bucket-id="${item.id}">
                 <span class="bucket-check">✓</span>
@@ -818,7 +818,7 @@ async function loadLoveNotes() {
     }
 
     container.innerHTML = allNotes.map(n => {
-        const from = n.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+        const from = n.from === 'ali' ? 'علي 💙' : 'آية 💗';
         const date = new Date(n.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
         return `
             <div class="lovenote-item glass">
@@ -844,7 +844,7 @@ function createSettingsForm() {
     return `
         <h3 class="modal-title">الإعدادات ⚙️</h3>
         <div class="form-group">
-            <label class="form-label">تبديل كود الدخول (${isAli ? 'علي 💙' : 'فاطمة 💗'})</label>
+            <label class="form-label">تبديل كود الدخول (${isAli ? 'علي 💙' : 'آية 💗'})</label>
             <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 أرقام" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
         </div>
         <button class="form-submit" id="save-passcode">حفظ الكود 💕</button>
@@ -994,7 +994,7 @@ function attachFormHandlers() {
         if (code && code.length === 4) {
             const passcodes = DataStore.getPasscodes();
             passcodes[currentUser] = code;
-            localStorage.setItem('fatimti_passcodes', JSON.stringify(passcodes));
+            localStorage.setItem('ayati_passcodes', JSON.stringify(passcodes));
             triggerHaptic('success');
             closeModal();
             toast('تبدل الكود بنجاح 🔒');
@@ -1016,7 +1016,7 @@ function attachFormHandlers() {
                 messagingSenderId: "",
                 appId: ""
             };
-            localStorage.setItem('fatimti_fb_config', JSON.stringify(config));
+            localStorage.setItem('ayati_fb_config', JSON.stringify(config));
             triggerHaptic('success');
             closeModal();
             toast('تحفظو إعدادات Firebase 🔥 — كليكي رافرشي الصفحة');

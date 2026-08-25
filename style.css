@@ -1,6 +1,6 @@
 /* ===================================================================
-   FATIMTI — Relationship Keeper
-   Dark romantic aesthetic · Glassmorphism · Mobile-first · PWA
+   AYATI — Relationship Keeper
+   Complete Mobile-First Stylesheet with Arabic/RTL Support
    =================================================================== */
 
 /* ---------- RESET & BASE ---------- */
@@ -34,10 +34,10 @@
     --ali-end: #a29bfe;
     --ali-glow: rgba(108, 92, 231, 0.35);
 
-    /* Fatima accent */
-    --fatima-start: #fd79a8;
-    --fatima-end: #fab1a0;
-    --fatima-glow: rgba(253, 121, 168, 0.35);
+    /* Aya accent */
+    --aya-start: #fd79a8;
+    --aya-end: #fab1a0;
+    --aya-glow: rgba(253, 121, 168, 0.35);
 
     /* glass */
     --glass-bg: rgba(255, 255, 255, 0.06);
@@ -371,12 +371,12 @@ body {
 }
 .ali-btn:active .user-avatar { transform: scale(1.15); }
 
-.fatima-btn:active {
-    border-color: var(--fatima-start);
-    box-shadow: 0 0 35px var(--fatima-glow);
+.aya-btn:active {
+    border-color: var(--aya-start);
+    box-shadow: 0 0 35px var(--aya-glow);
     transform: scale(0.95);
 }
-.fatima-btn:active .user-avatar { transform: scale(1.15); }
+.aya-btn:active .user-avatar { transform: scale(1.15); }
 
 /* Passcode keypad — phone style */
 .login-code {
@@ -569,8 +569,8 @@ body {
     background-clip: text;
 }
 
-.dash-hello .user-fatima {
-    background: linear-gradient(135deg, var(--fatima-start), var(--fatima-end));
+.dash-hello .user-aya {
+    background: linear-gradient(135deg, var(--aya-start), var(--aya-end));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

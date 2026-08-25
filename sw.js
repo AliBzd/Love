@@ -1,7 +1,7 @@
 // ===================================================================
-// FATIMTI — PWA Service Worker (Offline Cache & Instant Loading)
+// AYATI — PWA Service Worker (Offline Cache & Instant Loading)
 // ===================================================================
-const CACHE_NAME = 'fatimti-v1';
+const CACHE_NAME = 'ayati-v2';
 const ASSETS = [
     './',
     './index.html',
