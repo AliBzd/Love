@@ -1,7 +1,7 @@
 // ===================================================================
-// AYATI — PWA Service Worker (Offline Cache & Instant Loading)
+// AYATI — PWA Service Worker (Offline Cache, Instant Loading & Push)
 // ===================================================================
-const CACHE_NAME = 'ayati-v5';
+const CACHE_NAME = 'ayati-v7';
 const ASSETS = [
     './',
     './index.html',
@@ -45,6 +45,47 @@ self.addEventListener('fetch', (e) => {
             }).catch(() => cached);
 
             return cached || fetchPromise;
+        })
+    );
+});
+
+// Push notification event (Lock screen alerts on iOS 16.4+ / Android)
+self.addEventListener('push', (event) => {
+    let data = { title: 'Ayati 💕', body: 'You received a new love message!' };
+    try {
+        if (event.data) data = event.data.json();
+    } catch (e) {
+        if (event.data) data.body = event.data.text();
+    }
+
+    const options = {
+        body: data.body,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💕</text></svg>',
+        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💖</text></svg>',
+        vibrate: [200, 100, 200],
+        tag: data.tag || 'ayati-notification',
+        renotify: true,
+        data: { url: data.url || '/' }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'Ayati 💕', options)
+    );
+});
+
+// Notification click event — focuses or opens the app
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url.includes(self.location.origin) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow('/');
+            }
         })
     );
 });

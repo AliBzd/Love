@@ -38,6 +38,7 @@ const $$ = (sel) => document.querySelectorAll(sel);
     setupSparkle();
     setupMusic();
     initHeartsCanvas();
+    setupRealtimeNotifications();
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
@@ -396,6 +397,10 @@ function verifyPasscode() {
         DataStore.setUser(currentUser);
         updateThemeColor(currentUser);
         navigateTo('dashboard');
+        // Prompt for notification permission on login if not yet granted
+        if ('Notification' in window && Notification.permission === 'default') {
+            setTimeout(() => requestNotificationPermission(false), 1200);
+        }
         // Smoothly start music upon login unlock
         startMusicOnUnlock();
     } else {
@@ -963,6 +968,7 @@ function createLoveNoteForm() {
 function createSettingsForm() {
     const isAli = currentUser === 'ali';
     const currentCode = DataStore.getPasscodes()[currentUser] || '1111';
+    const notifGranted = 'Notification' in window && Notification.permission === 'granted';
     return `
         <h3 class="modal-title">Settings ⚙️</h3>
         <div class="form-group">
@@ -970,6 +976,18 @@ function createSettingsForm() {
             <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 digits" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
         </div>
         <button class="form-submit" id="save-passcode">Save PIN 💕</button>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:1.3rem 0 1rem;" />
+
+        <div class="form-group">
+            <label class="form-label">🔔 Push Notifications</label>
+            <p style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-bottom:0.8rem;">
+                Get lock-screen alerts when ${isAli ? 'Aya' : 'Ali'} sends you love letters, notes, or misses you.
+            </p>
+            <button class="form-submit" id="toggle-notifications" style="background:linear-gradient(135deg, #e84393, #6c5ce7);">
+                ${notifGranted ? '🔔 Notifications Active (Tap to Test)' : '🔔 Turn On Notifications'}
+            </button>
+        </div>
     `;
 }
 
@@ -1116,6 +1134,17 @@ function attachFormHandlers() {
             toast('PIN must be 4 digits!');
         }
     });
+
+    // Toggle Notifications
+    $('#toggle-notifications')?.addEventListener('click', async () => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            sendSystemNotification('Ayati 💕', 'Notifications are active! You will get alerts on your lock screen.');
+            toast('Test alert sent! 🔔');
+        } else {
+            await requestNotificationPermission(true);
+            closeModal();
+        }
+    });
 }
 
 // ===================================================================
@@ -1255,7 +1284,7 @@ function setupSparkle() {
 }
 
 // ===================================================================
-// MUSIC (YouTube)
+// MUSIC (YouTube — Indila - Love Story)
 // ===================================================================
 let _bgPlayer = null;
 let _bgPlaying = false;
@@ -1282,11 +1311,11 @@ function setupMusic() {
 
     window.onYouTubeIframeAPIReady = function () {
         _bgPlayer = new YT.Player('yt-player', {
-            videoId: 'HLEZYcpoIN4',
+            videoId: 'DF3XjEhJ40Y',
             playerVars: {
                 autoplay: 1,
                 loop: 1,
-                playlist: 'HLEZYcpoIN4',
+                playlist: 'DF3XjEhJ40Y',
                 controls: 0,
                 disablekb: 1,
                 fs: 0,
@@ -1318,6 +1347,97 @@ function setupMusic() {
         } else {
             _bgPlayer.playVideo();
             markPlaying();
+        }
+    });
+}
+
+// ===================================================================
+// PUSH & SYSTEM NOTIFICATIONS
+// ===================================================================
+async function requestNotificationPermission(showToast = true) {
+    if (!('Notification' in window)) {
+        if (showToast) toast('Notifications not supported in this browser');
+        return false;
+    }
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            if (showToast) {
+                toast('Notifications enabled! 🔔');
+                sendSystemNotification('Notifications Enabled 💕', 'You will receive alerts when your partner sends love!');
+            }
+            return true;
+        } else if (permission === 'denied') {
+            if (showToast) toast('Notifications blocked in browser settings');
+            return false;
+        }
+    } catch (e) {
+        console.warn('Permission error:', e);
+    }
+    return false;
+}
+
+function sendSystemNotification(title, body, tag = 'ayati-notification') {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(title, {
+                    body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💕</text></svg>',
+                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💖</text></svg>',
+                    tag,
+                    renotify: true,
+                    vibrate: [200, 100, 200],
+                    data: { url: '/' }
+                });
+            });
+        } else {
+            new Notification(title, {
+                body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💕</text></svg>',
+                tag
+            });
+        }
+    } catch (e) {
+        console.warn('Error sending notification:', e);
+    }
+}
+
+function setupRealtimeNotifications() {
+    let lastCheckedTime = Date.now();
+
+    // Real-time Miss You pings
+    DataStore.listen('missyou', (pings) => {
+        if (!currentUser) return;
+        const partner = DataStore.getPartner(currentUser);
+        const partnerName = partner === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const latest = pings.find(p => p.to === currentUser && p.createdAt > lastCheckedTime);
+        if (latest) {
+            lastCheckedTime = Math.max(lastCheckedTime, latest.createdAt);
+            sendSystemNotification('I Miss You! 💖', `${partnerName} just sent you love & missed you!`, 'missyou');
+        }
+    });
+
+    // Real-time Love Letters
+    DataStore.listen('letters', (letters) => {
+        if (!currentUser) return;
+        const partner = DataStore.getPartner(currentUser);
+        const partnerName = partner === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const newLetter = letters.find(l => l.to === currentUser && !l.read && l.createdAt > lastCheckedTime);
+        if (newLetter) {
+            sendSystemNotification('New Love Letter 💌', `A new letter from ${partnerName} arrived!`, 'letter');
+        }
+    });
+
+    // Real-time Sweet Notes
+    DataStore.listen('lovenotes', (notes) => {
+        if (!currentUser) return;
+        const partner = DataStore.getPartner(currentUser);
+        const partnerName = partner === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const newNote = notes.find(n => n.to === currentUser && n.createdAt > lastCheckedTime);
+        if (newNote) {
+            sendSystemNotification('Sweet Words 💕', `${partnerName} sent you a sweet note!`, 'note');
         }
     });
 }
