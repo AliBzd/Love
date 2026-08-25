@@ -449,6 +449,12 @@ function loadDashboard() {
     const days = Math.floor(diff / 86400000);
     $('#dash-days').textContent = `${days} days of love together 💕`;
 
+    // Dynamic "For Aya" / "For Ali" feature button label
+    const ourstoryLabel = $('#dash-ourstory-label');
+    if (ourstoryLabel) {
+        ourstoryLabel.textContent = isAli ? 'For Ali' : 'For Aya';
+    }
+
     // Update presence
     DataStore.updatePresence(currentUser);
 
@@ -2012,21 +2018,21 @@ function setupRealtimeNotifications() {
 }
 
 // ===================================================================
-// OUR STORY (Dynamic For Ali / For Aya)
+// OUR STORY (Dynamic: Aya sees "For Aya", Ali sees "For Ali")
 // ===================================================================
 function renderOurStory() {
-    const isAli = currentUser === 'ali';
-    const partnerName = isAli ? 'Aya' : 'Ali';
+    const isAya = currentUser === 'aya';
     const titleEl = $('#ourstory-header-title');
     const container = $('#ourstory-content');
     if (!container) return;
 
     if (titleEl) {
-        titleEl.textContent = isAli ? '🌹 For Aya' : '🌹 For Ali';
+        titleEl.textContent = isAya ? '🌹 For Aya' : '🌹 For Ali';
     }
 
-    const name = isAli ? 'Aya' : 'Ali';
-    const letterBody = isAli
+    const name = isAya ? 'Aya' : 'Ali';
+    const greetingName = isAya ? 'Aya' : 'Ali';
+    const letterBody = isAya
         ? `<p class="letter-body">
                 Every day with you feels like a dream I never want to wake up from.
                 You are my sunshine, my brightest star — the reason my heart beats.
@@ -2044,7 +2050,7 @@ function renderOurStory() {
                 I fall in love with you more and more every single day.
            </p>`;
 
-    const reasons = isAli ? [
+    const reasons = isAya ? [
         { icon: '✨', text: 'Your smile lights up my whole world' },
         { icon: '🌙', text: 'You make every ordinary moment feel magical' },
         { icon: '🦋', text: 'Every time I see you, I still get butterflies' },
@@ -2060,7 +2066,7 @@ function renderOurStory() {
         { icon: '🤍', text: 'You are my prince, my rock, and my forever home' }
     ];
 
-    const promiseText = isAli
+    const promiseText = isAya
         ? `I promise to cherish you on your best days and stand by you through the hardest.<br />
            I promise to be your calm in every storm, and your warmth in every winter.<br />
            I promise to never stop choosing you — today, tomorrow, and forever.`
@@ -2068,7 +2074,7 @@ function renderOurStory() {
            I promise to always be your peace, your biggest cheerleader, and your loyal partner.<br />
            I promise to hold your hand through everything life brings our way.`;
 
-    const signText = isAli ? '— With all my love, for Aya 💗' : '— With all my heart, for Ali 💙';
+    const signText = isAya ? '— With all my love, for Aya 💗' : '— With all my heart, for Ali 💙';
 
     container.innerHTML = `
         <!-- Splash section -->
@@ -2096,7 +2102,7 @@ function renderOurStory() {
         <section class="story-section">
             <div class="story-letter glass">
                 <p class="letter-date">July 5, 2026</p>
-                <h3 class="letter-greeting">My dearest ${partnerName},</h3>
+                <h3 class="letter-greeting">My dearest ${greetingName},</h3>
                 ${letterBody}
                 <p class="letter-sign">Yours always & forever&ensp;♥</p>
             </div>
