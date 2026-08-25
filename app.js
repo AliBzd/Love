@@ -1139,9 +1139,76 @@ async function loadDailyQuestion() {
 }
 
 // ===================================================================
-// VOICE MEMOS
+// VOICE MEMOS (iOS Safari & Cross-Platform Compatible)
 // ===================================================================
-let _currentAudio = null;
+let _globalAudio = null;
+
+function getSupportedAudioMimeType() {
+    if (typeof MediaRecorder === 'undefined') return '';
+    const types = [
+        'audio/mp4',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/aac',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/wav'
+    ];
+    for (const t of types) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+            return t;
+        }
+    }
+    return '';
+}
+
+function playVoiceNote(id, audioSrc, btn, prog) {
+    if (!_globalAudio) {
+        _globalAudio = new Audio();
+    }
+
+    if (_globalAudio.dataset.id === id && !_globalAudio.paused) {
+        _globalAudio.pause();
+        btn.textContent = '▶';
+        return;
+    }
+
+    // Stop previous
+    _globalAudio.pause();
+    $$('.vn-play-btn').forEach(b => b.textContent = '▶');
+
+    _globalAudio.src = audioSrc;
+    _globalAudio.dataset.id = id;
+    _globalAudio.load();
+
+    btn.textContent = '⏸';
+    SoundFX.tap(500);
+
+    _globalAudio.ontimeupdate = () => {
+        const pct = (_globalAudio.currentTime / (_globalAudio.duration || 1)) * 100;
+        if (prog) prog.style.width = pct + '%';
+    };
+
+    _globalAudio.onended = () => {
+        btn.textContent = '▶';
+        if (prog) prog.style.width = '0%';
+        _globalAudio.dataset.id = '';
+    };
+
+    _globalAudio.onerror = (e) => {
+        console.warn('Audio playback error:', e);
+        toast('Error playing audio memo');
+        btn.textContent = '▶';
+    };
+
+    const playPromise = _globalAudio.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => {
+            console.warn('Audio play promise failed:', e);
+            btn.textContent = '▶';
+        });
+    }
+}
 
 async function loadVoiceNotes() {
     const container = $('#voicenotes-content');
@@ -1159,7 +1226,7 @@ async function loadVoiceNotes() {
     container.innerHTML = notes.map(n => {
         const fromName = n.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
         const date = new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const durationStr = n.duration ? `${n.duration}s` : 'Voice note';
+        const durationStr = n.duration ? `${n.duration}s` : 'Voice memo';
         return `
             <div class="vn-card glass" data-vn-id="${n.id}">
                 <button class="vn-play-btn" id="play-vn-${n.id}">▶</button>
@@ -1184,52 +1251,28 @@ async function loadVoiceNotes() {
         delBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
             await DataStore.remove('voicenotes', n.id);
-            if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+            if (_globalAudio) { _globalAudio.pause(); _globalAudio = null; }
             loadVoiceNotes();
             toast('Voice memo deleted 🗑️');
         });
 
         btn?.addEventListener('click', () => {
-            if (_currentAudio && _currentAudio.dataset.id === n.id && !_currentAudio.paused) {
-                _currentAudio.pause();
-                btn.textContent = '▶';
-                return;
-            }
-
-            if (_currentAudio) {
-                _currentAudio.pause();
-                $$('.vn-play-btn').forEach(b => b.textContent = '▶');
-            }
-
-            const audio = new Audio(n.audio);
-            audio.dataset.id = n.id;
-            _currentAudio = audio;
-            btn.textContent = '⏸';
-            SoundFX.tap(500);
-
-            audio.ontimeupdate = () => {
-                const pct = (audio.currentTime / (audio.duration || 1)) * 100;
-                if (prog) prog.style.width = pct + '%';
-            };
-
-            audio.onended = () => {
-                btn.textContent = '▶';
-                if (prog) prog.style.width = '0%';
-                _currentAudio = null;
-            };
-
-            audio.play().catch(e => console.warn('Audio play error:', e));
+            playVoiceNote(n.id, n.audio, btn, prog);
         });
     });
 }
 
 let _mediaRecorder = null;
+let _activeAudioStream = null;
 let _audioChunks = [];
 let _recordInterval = null;
 let _recordSeconds = 0;
 let _recordedBase64 = null;
+let _recordedMime = 'audio/mp4';
 
 function createVoiceRecorderForm() {
+    _recordedBase64 = null;
+    _recordSeconds = 0;
     return `
         <h3 class="modal-title">Record Voice Memo 🎙️</h3>
         <div class="vn-record-box">
@@ -1237,7 +1280,7 @@ function createVoiceRecorderForm() {
             <button class="record-pulse-btn" id="vn-record-toggle">🎙️</button>
             <p id="vn-status-text" style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:1rem;">Tap mic to start recording</p>
             <div id="vn-preview-wrap" style="display:none;margin-top:1rem;">
-                <audio id="vn-audio-preview" controls style="width:100%;margin-bottom:1rem;"></audio>
+                <audio id="vn-audio-preview" controls playsinline style="width:100%;margin-bottom:1rem;"></audio>
                 <button class="form-submit" id="save-voicenote">Send Voice Memo 💕</button>
             </div>
         </div>
@@ -1283,6 +1326,15 @@ function openModal(html) {
 }
 
 function closeModal() {
+    // Clean up any active recording
+    if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+        try { _mediaRecorder.stop(); } catch(e) {}
+        clearInterval(_recordInterval);
+    }
+    if (_activeAudioStream) {
+        _activeAudioStream.getTracks().forEach(t => t.stop());
+        _activeAudioStream = null;
+    }
     $('#modal-overlay').hidden = true;
     $('#modal-body').innerHTML = '';
 }
@@ -1415,38 +1467,58 @@ function attachFormHandlers() {
     recToggle?.addEventListener('click', async () => {
         if (_mediaRecorder && _mediaRecorder.state === 'recording') {
             // Stop recording
-            _mediaRecorder.stop();
+            try {
+                _mediaRecorder.stop();
+            } catch(e) {}
             clearInterval(_recordInterval);
             recToggle.classList.remove('recording');
-            statusText.textContent = 'Recording finished!';
+            statusText.textContent = '✅ Recording ready! Listen or send below:';
             SoundFX.pop();
         } else {
             // Start recording
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                _activeAudioStream = stream;
                 _audioChunks = [];
                 _recordSeconds = 0;
-                _mediaRecorder = new MediaRecorder(stream);
+                
+                const mimeType = getSupportedAudioMimeType();
+                _recordedMime = mimeType || 'audio/mp4';
+                const options = mimeType ? { mimeType } : {};
+                
+                try {
+                    _mediaRecorder = new MediaRecorder(stream, options);
+                } catch(e) {
+                    _mediaRecorder = new MediaRecorder(stream);
+                }
 
                 _mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) _audioChunks.push(e.data);
+                    if (e.data && e.data.size > 0) _audioChunks.push(e.data);
                 };
 
                 _mediaRecorder.onstop = () => {
-                    const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+                    const actualMime = _mediaRecorder.mimeType || _recordedMime || 'audio/mp4';
+                    const blob = new Blob(_audioChunks, { type: actualMime });
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         _recordedBase64 = reader.result;
-                        if (audioPreview) audioPreview.src = _recordedBase64;
+                        if (audioPreview) {
+                            audioPreview.src = _recordedBase64;
+                            audioPreview.load();
+                        }
                         if (previewWrap) previewWrap.style.display = 'block';
                     };
                     reader.readAsDataURL(blob);
-                    stream.getTracks().forEach(track => track.stop());
+
+                    if (_activeAudioStream) {
+                        _activeAudioStream.getTracks().forEach(track => track.stop());
+                        _activeAudioStream = null;
+                    }
                 };
 
-                _mediaRecorder.start();
+                _mediaRecorder.start(200); // 200ms time slice for iOS WebKit reliability
                 recToggle.classList.add('recording');
-                statusText.textContent = 'Recording in progress... (Tap to stop)';
+                statusText.textContent = '🔴 Recording... Tap again when finished';
                 SoundFX.tap(600);
 
                 _recordInterval = setInterval(() => {
@@ -1455,13 +1527,16 @@ function attachFormHandlers() {
                     const sec = String(_recordSeconds % 60).padStart(2, '0');
                     if (timerEl) timerEl.textContent = `${min}:${sec}`;
                     if (_recordSeconds >= 60) {
-                        _mediaRecorder.stop();
+                        try { _mediaRecorder.stop(); } catch(e) {}
                         clearInterval(_recordInterval);
+                        recToggle.classList.remove('recording');
+                        statusText.textContent = 'Max duration reached (60s)';
                     }
                 }, 1000);
             } catch (err) {
                 toast('Microphone permission required 🎙️');
                 console.warn('Microphone error:', err);
+                if (statusText) statusText.textContent = 'Microphone permission denied';
             }
         }
     });
