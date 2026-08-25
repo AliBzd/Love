@@ -970,17 +970,6 @@ function createSettingsForm() {
             <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 digits" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
         </div>
         <button class="form-submit" id="save-passcode">Save PIN 💕</button>
-
-        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:1.5rem 0 1rem;" />
-
-        <div class="form-group">
-            <label class="form-label">🔥 Link Firebase (Real-time live sync between devices)</label>
-            <input class="form-input" id="setting-apikey" placeholder="API Key" value="${FIREBASE_CONFIG.apiKey || ''}" />
-        </div>
-        <div class="form-group">
-            <input class="form-input" id="setting-projectid" placeholder="Project ID" value="${FIREBASE_CONFIG.projectId || ''}" />
-        </div>
-        <button class="form-submit" id="save-firebase" style="background:linear-gradient(135deg, #6c5ce7, #a29bfe)">Save Firebase Config 🔥</button>
     `;
 }
 
@@ -1125,29 +1114,6 @@ function attachFormHandlers() {
             toast('PIN updated successfully 🔒');
         } else {
             toast('PIN must be 4 digits!');
-        }
-    });
-
-    // Save Firebase keys
-    $('#save-firebase')?.addEventListener('click', () => {
-        const apiKey = $('#setting-apikey')?.value.trim();
-        const projectId = $('#setting-projectid')?.value.trim();
-        if (apiKey && projectId) {
-            const config = {
-                apiKey,
-                authDomain: `${projectId}.firebaseapp.com`,
-                projectId,
-                storageBucket: `${projectId}.appspot.com`,
-                messagingSenderId: "",
-                appId: ""
-            };
-            localStorage.setItem('ayati_fb_config', JSON.stringify(config));
-            triggerHaptic('success');
-            closeModal();
-            toast('Firebase configured! Reloading...');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            toast('Please fill in all fields first!');
         }
     });
 }
