@@ -65,7 +65,7 @@ html {
 }
 
 body {
-    font-family: var(--font-arabic);
+    font-family: var(--font-body);
     color: var(--white-soft);
     background: var(--midnight);
     overflow: hidden;
@@ -151,8 +151,8 @@ body {
 }
 
 .view-header h2 {
-    font-family: var(--font-arabic);
-    font-size: 1.15rem;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
     font-weight: 600;
     background: linear-gradient(135deg, var(--blush), var(--gold));
     -webkit-background-clip: text;
@@ -305,9 +305,10 @@ body {
 }
 
 .login-title {
-    font-family: var(--font-arabic);
-    font-size: 2.6rem;
+    font-family: var(--font-display);
+    font-size: 2.8rem;
     font-weight: 700;
+    letter-spacing: 1px;
     background: linear-gradient(135deg, var(--blush), var(--peach), var(--gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -556,7 +557,7 @@ body {
 }
 
 .dash-hello {
-    font-family: var(--font-arabic);
+    font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.15rem;
@@ -1235,8 +1236,8 @@ body {
 }
 
 .calligraphy-text {
-    font-family: 'Noto Sans Arabic', serif;
-    font-size: 90px;
+    font-family: var(--font-script), 'Dancing Script', cursive;
+    font-size: 96px;
     font-weight: 700;
     stroke: url(#calliGrad);
     stroke-width: 1.5;
@@ -1285,31 +1286,31 @@ body {
 }
 
 .letter-greeting {
-    font-family: var(--font-arabic);
-    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    font-family: var(--font-script), cursive;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
     font-weight: 700;
     color: var(--blush);
     margin-bottom: 1rem;
 }
 
 .letter-body {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     line-height: 1.9;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.75);
     margin-bottom: 0.8rem;
     font-weight: 300;
 }
 
 .letter-sign {
-    font-family: var(--font-arabic);
-    font-size: 1rem;
+    font-family: var(--font-script), cursive;
+    font-size: 1.3rem;
     color: var(--peach);
     margin-top: 1rem;
     font-weight: 500;
 }
 
 .story-heading {
-    font-family: var(--font-arabic);
+    font-family: var(--font-display), Georgia, serif;
     font-size: 1.4rem;
     font-weight: 700;
     background: linear-gradient(135deg, var(--blush), var(--gold));

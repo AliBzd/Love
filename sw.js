@@ -1,7 +1,7 @@
 // ===================================================================
 // AYATI — PWA Service Worker (Offline Cache & Instant Loading)
 // ===================================================================
-const CACHE_NAME = 'ayati-v2';
+const CACHE_NAME = 'ayati-v3';
 const ASSETS = [
     './',
     './index.html',
@@ -9,7 +9,7 @@ const ASSETS = [
     './app.js',
     './firebase-config.js',
     './manifest.json',
-    'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&family=Dancing+Script:wght@400;700&family=Noto+Sans+Arabic:wght@300;400;500;700&display=swap'
+    'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;700&display=swap'
 ];
 
 self.addEventListener('install', (e) => {

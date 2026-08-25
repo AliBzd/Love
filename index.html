@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>آيتي 💕 — الحب ديالنا</title>
-    <meta name="description" content="آيتي — مكان الحب ديالنا. رسائل، ذكريات، و كلام حلو بين علي و آية." />
+    <title>Ayati 💕 — Our Love Story</title>
+    <meta name="description" content="Ayati — Our Love Story. Letters, memories, and sweet words between Ali and Aya." />
     <meta name="theme-color" content="#1a0a1e" />
 
     <!-- PWA / Mobile -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="آيتي" />
+    <meta name="apple-mobile-web-app-title" content="Ayati" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="manifest.json" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&family=Dancing+Script:wght@400;700&family=Noto+Sans+Arabic:wght@300;400;500;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;700&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
 </head>
@@ -33,20 +33,20 @@
                     <span class="logo-heart left">💙</span>
                     <span class="logo-heart right">💗</span>
                 </div>
-                <h1 class="login-title">آيتي</h1>
-                <p class="login-subtitle">الحب ديالنا، مكان واحد</p>
+                <h1 class="login-title">Ayati</h1>
+                <p class="login-subtitle">Our love, in one place</p>
             </div>
 
             <div id="login-select" class="login-select">
-                <p class="login-prompt">شكون نتا؟</p>
+                <p class="login-prompt">Who are you?</p>
                 <div class="login-users">
                     <button class="login-user-btn ali-btn" data-user="ali">
                         <span class="user-avatar">👨</span>
-                        <span class="user-name">علي</span>
+                        <span class="user-name">Ali</span>
                     </button>
                     <button class="login-user-btn aya-btn" data-user="aya">
                         <span class="user-avatar">👩</span>
-                        <span class="user-name">آية</span>
+                        <span class="user-name">Aya</span>
                     </button>
                 </div>
             </div>
@@ -71,7 +71,7 @@
                     <button class="key-btn key-fn key-enter" data-key="enter">✓</button>
                 </div>
                 <p id="login-error" class="login-error"></p>
-                <button id="login-back" class="login-back-link">← رجوع</button>
+                <button id="login-back" class="login-back-link">← Back</button>
             </div>
         </div>
     </div>
@@ -94,8 +94,8 @@
             <button id="miss-you-btn" class="miss-you-card glass">
                 <span class="miss-you-icon">💖</span>
                 <div class="miss-you-text">
-                    <p class="miss-you-title">توحشتك!</p>
-                    <p class="miss-you-sub">كليكي باش تصيفط/ي حب دابا</p>
+                    <p class="miss-you-title">I Miss You!</p>
+                    <p class="miss-you-sub">Tap to send instant love</p>
                 </div>
             </button>
 
@@ -104,7 +104,7 @@
                 <span class="partner-mood-emoji" id="dash-partner-mood">🤍</span>
                 <div class="partner-mood-info">
                     <p class="partner-mood-name" id="dash-partner-name"></p>
-                    <p class="partner-mood-status" id="dash-partner-status">ما تشيكا بعد</p>
+                    <p class="partner-mood-status" id="dash-partner-status">Not checked in yet</p>
                 </div>
             </div>
 
@@ -118,36 +118,36 @@
             <div class="feature-grid">
                 <button class="feature-btn glass" data-nav="letters">
                     <span class="feature-emoji">💌</span>
-                    <span class="feature-label">رسائل</span>
+                    <span class="feature-label">Letters</span>
                     <span class="feature-badge" id="unread-badge" hidden>0</span>
                 </button>
                 <button class="feature-btn glass" data-nav="memories">
                     <span class="feature-emoji">📸</span>
-                    <span class="feature-label">ذكريات</span>
+                    <span class="feature-label">Memories</span>
                 </button>
                 <button class="feature-btn glass" data-nav="timeline">
                     <span class="feature-emoji">📅</span>
-                    <span class="feature-label">قصتنا</span>
+                    <span class="feature-label">Our Story</span>
                 </button>
                 <button class="feature-btn glass" data-nav="countdown">
                     <span class="feature-emoji">⏳</span>
-                    <span class="feature-label">أيامنا</span>
+                    <span class="feature-label">Milestones</span>
                 </button>
                 <button class="feature-btn glass" data-nav="mood">
                     <span class="feature-emoji">😊</span>
-                    <span class="feature-label">المزاج</span>
+                    <span class="feature-label">Daily Mood</span>
                 </button>
                 <button class="feature-btn glass" data-nav="bucketlist">
                     <span class="feature-emoji">📝</span>
-                    <span class="feature-label">أحلامنا</span>
+                    <span class="feature-label">Bucket List</span>
                 </button>
                 <button class="feature-btn glass" data-nav="lovenotes">
                     <span class="feature-emoji">💕</span>
-                    <span class="feature-label">كلام حلو</span>
+                    <span class="feature-label">Sweet Notes</span>
                 </button>
                 <button class="feature-btn glass" data-nav="ourstory">
                     <span class="feature-emoji">🌹</span>
-                    <span class="feature-label">قصة الحب</span>
+                    <span class="feature-label">For Aya</span>
                 </button>
             </div>
         </div>
@@ -156,8 +156,8 @@
     <!-- ===================== LETTERS ===================== -->
     <div id="view-letters" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>💌 رسائل الحب</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>💌 Love Letters</h2>
         </header>
         <div class="view-scroll" id="letters-list"></div>
         <button class="fab" id="fab-letter" aria-label="Write letter">✏️</button>
@@ -166,9 +166,9 @@
     <!-- ===================== MEMORIES ===================== -->
     <div id="view-memories" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>📸 ذكرياتنا</h2>
-            <button id="slideshow-btn" class="icon-btn" style="margin-right:auto;" aria-label="Play slideshow">🎬</button>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>📸 Our Memories</h2>
+            <button id="slideshow-btn" class="icon-btn" style="margin-left:auto;" aria-label="Play slideshow">🎬</button>
         </header>
         <div class="view-scroll">
             <div class="memories-grid" id="memories-grid"></div>
@@ -179,8 +179,8 @@
     <!-- ===================== TIMELINE ===================== -->
     <div id="view-timeline" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>📅 القصة ديالنا</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>📅 Our Story</h2>
         </header>
         <div class="view-scroll">
             <div class="tl-line" id="timeline-list"></div>
@@ -191,8 +191,8 @@
     <!-- ===================== COUNTDOWN ===================== -->
     <div id="view-countdown" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>⏳ أيامنا</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>⏳ Milestones</h2>
         </header>
         <div class="view-scroll" id="countdown-content"></div>
         <button class="fab" id="fab-countdown" aria-label="Add date">➕</button>
@@ -201,8 +201,8 @@
     <!-- ===================== MOOD ===================== -->
     <div id="view-mood" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>😊 كيف حالك اليوم؟</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>😊 How are you today?</h2>
         </header>
         <div class="view-scroll" id="mood-content"></div>
     </div>
@@ -210,8 +210,8 @@
     <!-- ===================== BUCKET LIST ===================== -->
     <div id="view-bucketlist" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>📝 أحلامنا</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>📝 Our Bucket List</h2>
         </header>
         <div class="view-scroll" id="bucketlist-content"></div>
         <button class="fab" id="fab-bucket" aria-label="Add goal">➕</button>
@@ -220,26 +220,26 @@
     <!-- ===================== LOVE NOTES ===================== -->
     <div id="view-lovenotes" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>💕 كلام حلو</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>💕 Sweet Words</h2>
         </header>
         <div class="view-scroll" id="lovenotes-content"></div>
         <button class="fab" id="fab-lovenote" aria-label="Write note">✏️</button>
     </div>
 
-    <!-- ===================== OUR STORY (original content) ===================== -->
+    <!-- ===================== OUR STORY ===================== -->
     <div id="view-ourstory" class="view">
         <header class="view-header">
-            <button class="back-btn" data-nav="dashboard">→</button>
-            <h2>🌹 ليك أ آية</h2>
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>🌹 For Aya</h2>
         </header>
         <div class="view-scroll story-scroll">
 
             <!-- Splash section -->
             <section class="story-section story-splash">
-                <p class="splash-pre">هاد الشي درتو ليك…</p>
+                <p class="splash-pre">I made this for you…</p>
                 <div class="calligraphy-wrap">
-                    <svg class="calligraphy-svg" viewBox="0 0 500 120" aria-label="آية">
+                    <svg class="calligraphy-svg" viewBox="0 0 500 120" aria-label="Aya">
                         <defs>
                             <linearGradient id="calliGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stop-color="#fd79a8" />
@@ -249,7 +249,7 @@
                         </defs>
                         <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
                             class="calligraphy-text" fill="url(#calliGrad)">
-                            آية
+                            Aya
                         </text>
                     </svg>
                     <div class="calligraphy-glow"></div>
@@ -259,47 +259,47 @@
             <!-- Love letter -->
             <section class="story-section">
                 <div class="story-letter glass">
-                    <p class="letter-date">22 يونيو 2026</p>
-                    <h3 class="letter-greeting">أ غزالتي آية،</h3>
+                    <p class="letter-date">July 5, 2026</p>
+                    <h3 class="letter-greeting">My dearest Aya,</h3>
                     <p class="letter-body">
-                        كل نهار معاك كيبان ليا بحال حلم ما بغيت نفيق منو.
-                        نتي الشمس ديالي و النجمة ديالي — نتي السبب اللي قلبي كيخفق.
+                        Every day with you feels like a dream I never want to wake up from.
+                        You are my sunshine, my brightest star — the reason my heart beats.
                     </p>
                     <p class="letter-body">
-                        غير الضحكة ديالك كتنوّر ليا الدنيا كاملة، و صوتك هو أحلى موسيقى عندي.
-                        كل لحظة كنحبك كتر من اللي قبلها.
+                        Your smile alone lights up my entire world, and your voice is my sweetest melody.
+                        With every single heartbeat, I find myself loving you more than ever before.
                     </p>
-                    <p class="letter-sign">ديالك ديما و لأبد&ensp;♥</p>
+                    <p class="letter-sign">Yours always & forever&ensp;♥</p>
                 </div>
             </section>
 
             <!-- Reasons -->
             <section class="story-section">
-                <h3 class="story-heading">علاش كنحبك</h3>
+                <h3 class="story-heading">Why I Love You</h3>
                 <div class="story-reasons">
                     <div class="story-reason glass">
                         <span>✨</span>
-                        <p>الضحكة ديالك كتنوّر ليا الدنيا كاملة</p>
+                        <p>Your smile lights up my whole world</p>
                     </div>
                     <div class="story-reason glass">
                         <span>🌙</span>
-                        <p>كتخلّي كل لحظة عادية تولي سحرية</p>
+                        <p>You make every ordinary moment feel magical</p>
                     </div>
                     <div class="story-reason glass">
                         <span>🦋</span>
-                        <p>كل مرة كنشوفك كيطيرو ليا الفراشات</p>
+                        <p>Every time I see you, I still get butterflies</p>
                     </div>
                     <div class="story-reason glass">
                         <span>🌹</span>
-                        <p>الطيبة ديالك كتلهمني نكون أحسن</p>
+                        <p>Your kindness inspires me to be a better person</p>
                     </div>
                     <div class="story-reason glass">
                         <span>💫</span>
-                        <p>نتي صاحبتي و أكبر حب فحياتي</p>
+                        <p>You are my best friend and the greatest love of my life</p>
                     </div>
                     <div class="story-reason glass">
                         <span>🤍</span>
-                        <p>معاك، أخيراً لقيت الدار ديالي</p>
+                        <p>With you, I have finally found my home</p>
                     </div>
                 </div>
             </section>
@@ -311,13 +311,13 @@
                         <path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z" />
                     </svg>
                 </div>
-                <h3 class="promise-title">الوعد ديالي ليك</h3>
+                <h3 class="promise-title">My Promise to You</h3>
                 <p class="promise-text">
-                    كنوعدك نحبك فأحسن أيامك و نكون معاك فأصعبها.<br />
-                    كنوعدك نكون الهدوء ديالك فكل عاصفة، و الدفء ديالك فكل شتاء.<br />
-                    كنوعدك ما نوقف أبداً نختارك — اليوم، غدا، و للأبد.
+                    I promise to cherish you on your best days and stand by you through the hardest.<br />
+                    I promise to be your calm in every storm, and your warmth in every winter.<br />
+                    I promise to never stop choosing you — today, tomorrow, and forever.
                 </p>
-                <p class="promise-sign">— بكل الحب ديالي، لآية 💗</p>
+                <p class="promise-sign">— With all my love, for Aya 💗</p>
             </section>
         </div>
     </div>

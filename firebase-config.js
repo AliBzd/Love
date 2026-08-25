@@ -34,23 +34,23 @@ let _firebaseReady = false;
 const DEFAULT_PASSCODES = { ali: "1111", aya: "2222" };
 
 const DEFAULT_TIMELINE = [
-    { id: "t1", date: "", title: "النهار اللي تلاقينا", description: "القدر جمعنا، و من داك النهار تبدّلات حياتي للأبد.", addedBy: "ali" },
-    { id: "t2", date: "", title: "أول ضحكة مع بعضياتنا", description: "داك الوقت عرفت — الضحكة ديالك هي الصوت اللي قلبي كان كيتسنّى يسمعو.", addedBy: "ali" },
-    { id: "t3", date: "", title: "طحت فالحب", description: "ماكانش شي لحظة وحدة — كانو ألف لحظة صغيرة ولّاو كلشي.", addedBy: "ali" },
-    { id: "t4", date: "", title: "اليوم و غدا", description: "كل نهار كنختارك، و كل غدا غادي نختارك مرة أخرى. ديما. 💕", addedBy: "ali" },
+    { id: "t1", date: "2026-07-05", title: "The Day We Met", description: "Destiny brought us together, and from that day on, my life changed forever.", addedBy: "ali" },
+    { id: "t2", date: "", title: "Our First Laugh", description: "That was the moment I knew — your laughter is the melody my heart had been waiting for.", addedBy: "ali" },
+    { id: "t3", date: "", title: "Falling in Love", description: "It wasn't just a single moment — it was a thousand little moments becoming everything.", addedBy: "ali" },
+    { id: "t4", date: "", title: "Today and Forever", description: "Every day I choose you, and every tomorrow I will choose you again. Always. 💕", addedBy: "ali" },
 ];
 
 const DEFAULT_LOVE_QUOTES = [
-    "كل نهار معاك كيبان ليا بحال حلم ما بغيت نفيق منو 💕",
-    "نتي الشمس ديالي و النجمة ديالي 🌟",
-    "غير الضحكة ديالك كتنوّر ليا الدنيا كاملة ✨",
-    "كل لحظة كنحبك كتر من اللي قبلها 💗",
-    "معاك، أخيراً لقيت الدار ديالي 🤍",
-    "صوتك هو أحلى موسيقى عندي 🎵",
-    "كنوعدك نحبك فأحسن أيامك و نكون معاك فأصعبها 💪",
-    "نتي صاحبتي و أكبر حب فحياتي 💫",
-    "كل مرة كنشوفك كيطيرو ليا الفراشات 🦋",
-    "الطيبة ديالك كتلهمني نكون أحسن 🌹",
+    "Every day with you feels like a dream I never want to wake up from 💕",
+    "You are my sunshine and my brightest star 🌟",
+    "Your smile alone lights up my entire world ✨",
+    "Every single moment, I find myself loving you more 💗",
+    "With you, I have finally found my home 🤍",
+    "Your voice is my favorite song 🎵",
+    "I promise to love you on your best days and stand by you through the hardest 💪",
+    "You are my best friend and the greatest love of my life 💫",
+    "Every time I look at you, I still get butterflies 🦋",
+    "Your kindness inspires me every single day 🌹",
 ];
 
 // ───────── Initialize Firebase (if configured) ─────────
@@ -146,17 +146,17 @@ function _lsSet(key, value) {
 
 // ───────── Initialize defaults if first run ─────────
 function _ensureDefaults() {
-    if (!_lsGet("initialized")) {
+    if (!_lsGet("initialized_en_v2")) {
         _lsSet("passcodes", DEFAULT_PASSCODES);
         _lsSet("timeline", DEFAULT_TIMELINE);
         _lsSet("letters", []);
         _lsSet("memories", []);
-        _lsSet("countdowns", [{ id: "main", title: "حنا مع بعضياتنا", date: "2026-05-13T00:00:00", type: "since" }]);
+        _lsSet("countdowns", [{ id: "main", title: "Together Forever", date: "2026-07-05T00:00:00", type: "since" }]);
         _lsSet("moods_ali", []);
         _lsSet("moods_aya", []);
         _lsSet("bucketlist", []);
         _lsSet("lovenotes", []);
-        _lsSet("initialized", true);
+        _lsSet("initialized_en_v2", true);
     }
 }
 

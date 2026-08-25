@@ -11,8 +11,8 @@ let passcodeBuffer = '';
 let selectedLoginUser = null;
 let countdownInterval = null;
 
-// Anniversary date
-const ANNIVERSARY = new Date('2026-05-13T00:00:00');
+// Anniversary date: 05/07/2026 (July 5, 2026)
+const ANNIVERSARY = new Date('2026-07-05T00:00:00');
 
 // ─── DOM Cache ────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -149,7 +149,7 @@ function setupNavigation() {
             from: currentUser,
             to: partner
         });
-        toast('تصيفطات "توحشتك" 💕');
+        toast('Sent "I Miss You" 💕');
     });
 
     // Logout
@@ -221,8 +221,8 @@ function setupLogin() {
         btn.addEventListener('click', () => {
             triggerHaptic('medium');
             selectedLoginUser = btn.dataset.user;
-            const name = selectedLoginUser === 'ali' ? 'علي 💙' : 'آية 💗';
-            $('#login-code-prompt').textContent = `مرحبا ${name} — دخل الكود ديالك`;
+            const name = selectedLoginUser === 'ali' ? 'Ali 💙' : 'Aya 💗';
+            $('#login-code-prompt').textContent = `Welcome ${name} — Enter your PIN`;
             $('#login-select').hidden = true;
             $('#login-code').hidden = false;
             passcodeBuffer = '';
@@ -285,7 +285,7 @@ function verifyPasscode() {
         // Error
         triggerHaptic('error');
         $('#passcode-dots').classList.add('error');
-        $('#login-error').textContent = 'الكود ماشي صحيح ❌';
+        $('#login-error').textContent = 'Incorrect PIN ❌';
         setTimeout(() => {
             passcodeBuffer = '';
             updatePasscodeDots();
@@ -299,27 +299,27 @@ function verifyPasscode() {
 function loadDashboard() {
     const partner = DataStore.getPartner(currentUser);
     const isAli = currentUser === 'ali';
-    const name = isAli ? 'علي' : 'آية';
-    const partnerName = isAli ? 'آية' : 'علي';
+    const name = isAli ? 'Ali' : 'Aya';
+    const partnerName = isAli ? 'Aya' : 'Ali';
     const cssClass = isAli ? 'user-ali' : 'user-aya';
 
     // Greeting
-    $('#dash-hello').innerHTML = `مرحبا <span class="${cssClass}">${name}</span> 💕`;
+    $('#dash-hello').innerHTML = `Welcome <span class="${cssClass}">${name}</span> 💕`;
 
     // Days counter
     const diff = Date.now() - ANNIVERSARY.getTime();
     const days = Math.floor(diff / 86400000);
-    $('#dash-days').textContent = `${days} يوم ديال الحب مع بعضياتنا 💕`;
+    $('#dash-days').textContent = `${days} days of love together 💕`;
 
     // Partner mood
-    $('#dash-partner-name').textContent = `${partnerName} حاس/حاسة بـ`;
+    $('#dash-partner-name').textContent = `${partnerName} is feeling`;
     DataStore.getTodayMood(partner).then(mood => {
         if (mood) {
             $('#dash-partner-mood').textContent = mood.emoji;
-            $('#dash-partner-status').textContent = 'اليوم';
+            $('#dash-partner-status').textContent = 'Today';
         } else {
             $('#dash-partner-mood').textContent = '🤍';
-            $('#dash-partner-status').textContent = 'ما تشيكا بعد';
+            $('#dash-partner-status').textContent = 'Not checked in yet';
         }
     });
 
@@ -344,7 +344,7 @@ function loadDashboard() {
     DataStore.getAll('missyou').then(pings => {
         const latest = pings.find(p => p.to === currentUser);
         if (latest && (Date.now() - latest.createdAt) < 7200000) { // within 2 hours
-            toast(`${partnerName} توحشاتك/توحشك مؤخراً! 💕`);
+            toast(`${partnerName} missed you recently! 💕`);
         }
     });
 }
@@ -360,15 +360,15 @@ async function loadLetters() {
         container.innerHTML = `
             <div class="empty-state">
                 <span class="empty-state-emoji">💌</span>
-                <p class="empty-state-text">ما كاين حتى رسالة بعد<br>كتب أول رسالة حب!</p>
+                <p class="empty-state-text">No letters yet<br>Write your first love letter!</p>
             </div>`;
         return;
     }
 
     container.innerHTML = letters.map(l => {
         const isUnread = l.to === currentUser && !l.read;
-        const fromName = l.from === 'ali' ? 'علي 💙' : 'آية 💗';
-        const date = new Date(l.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
+        const fromName = l.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const date = new Date(l.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
         return `
             <div class="letter-item glass ${isUnread ? 'unread' : ''}" data-letter-id="${l.id}">
                 <div class="letter-item-header">
@@ -395,36 +395,36 @@ async function openLetter(id) {
         await DataStore.update('letters', id, { read: true });
     }
 
-    const fromName = letter.from === 'ali' ? 'علي 💙' : 'آية 💗';
-    const date = new Date(letter.createdAt).toLocaleDateString('ar-MA', {
+    const fromName = letter.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
+    const date = new Date(letter.createdAt).toLocaleDateString('en-US', {
         day: 'numeric', month: 'long', year: 'numeric'
     });
 
     openModal(`
         <h3 class="modal-title">💌</h3>
-        <p class="letter-detail-from">من ${fromName}</p>
+        <p class="letter-detail-from">From ${fromName}</p>
         <p class="letter-detail-date">${date}</p>
         <p class="letter-detail-body">${letter.content}</p>
-        <button class="delete-btn" id="delete-letter-${id}">حذف الرسالة</button>
+        <button class="delete-btn" id="delete-letter-${id}">Delete Letter</button>
     `);
 
     $(`#delete-letter-${id}`)?.addEventListener('click', async () => {
         await DataStore.remove('letters', id);
         closeModal();
         loadLetters();
-        toast('تمسحات الرسالة 🗑️');
+        toast('Letter deleted 🗑️');
     });
 }
 
 function createLetterForm() {
     const partner = DataStore.getPartner(currentUser);
-    const partnerName = partner === 'ali' ? 'علي' : 'آية';
+    const partnerName = partner === 'ali' ? 'Ali' : 'Aya';
     return `
-        <h3 class="modal-title">كتب رسالة لـ ${partnerName} 💌</h3>
+        <h3 class="modal-title">Write a letter to ${partnerName} 💌</h3>
         <div class="form-group">
-            <textarea class="form-textarea" id="letter-content" placeholder="اكتب من قلبك..." rows="6"></textarea>
+            <textarea class="form-textarea" id="letter-content" placeholder="Write from your heart..." rows="6"></textarea>
         </div>
-        <button class="form-submit" id="send-letter">إرسال 💕</button>
+        <button class="form-submit" id="send-letter">Send 💕</button>
     `;
 }
 
@@ -439,7 +439,7 @@ async function loadMemories() {
         container.innerHTML = `
             <div class="empty-state" style="grid-column: 1/-1">
                 <span class="empty-state-emoji">📸</span>
-                <p class="empty-state-text">ما كاين حتى ذكرى بعد<br>زيد أول صورة!</p>
+                <p class="empty-state-text">No memories yet<br>Add our first photo!</p>
             </div>`;
         return;
     }
@@ -471,21 +471,21 @@ function openLightbox(id) {
 
 function createMemoryForm() {
     return `
-        <h3 class="modal-title">زيد ذكرى 📸</h3>
+        <h3 class="modal-title">Add Memory 📸</h3>
         <div class="form-group">
             <input type="file" accept="image/*" class="form-file" id="memory-file" />
             <label for="memory-file" class="form-file-label" id="memory-file-label">
-                📷 اختار صورة
+                📷 Choose a photo
             </label>
             <img class="form-file-preview" id="memory-preview" />
         </div>
         <div class="form-group">
-            <input class="form-input" id="memory-caption" placeholder="شنو كان فهاد اللحظة؟" />
+            <input class="form-input" id="memory-caption" placeholder="What was special about this moment?" />
         </div>
         <div class="form-group">
             <input class="form-input" type="date" id="memory-date" />
         </div>
-        <button class="form-submit" id="save-memory">حفظ 💕</button>
+        <button class="form-submit" id="save-memory">Save Memory 💕</button>
     `;
 }
 
@@ -503,7 +503,7 @@ async function loadTimeline() {
         container.innerHTML = `
             <div class="empty-state">
                 <span class="empty-state-emoji">📅</span>
-                <p class="empty-state-text">ابدا القصة ديالكم!<br>زيد أول لحظة مميزة</p>
+                <p class="empty-state-text">Start our story!<br>Add our first special milestone</p>
             </div>`;
         return;
     }
@@ -522,18 +522,18 @@ async function loadTimeline() {
 
 function createTimelineForm() {
     return `
-        <h3 class="modal-title">زيد لحظة مميزة 📅</h3>
+        <h3 class="modal-title">Add Milestone 📅</h3>
         <div class="form-group">
-            <input class="form-input" id="tl-title" placeholder="عنوان اللحظة" />
+            <input class="form-input" id="tl-title" placeholder="Moment title" />
         </div>
         <div class="form-group">
-            <textarea class="form-textarea" id="tl-desc" placeholder="شنو وقع؟" rows="3"></textarea>
+            <textarea class="form-textarea" id="tl-desc" placeholder="What happened?" rows="3"></textarea>
         </div>
         <div class="form-group">
-            <label class="form-label">التاريخ (اختياري)</label>
+            <label class="form-label">Date (optional)</label>
             <input class="form-input" type="date" id="tl-date" />
         </div>
-        <button class="form-submit" id="save-timeline">حفظ 💕</button>
+        <button class="form-submit" id="save-timeline">Save Milestone 💕</button>
     `;
 }
 
@@ -556,30 +556,30 @@ function loadCountdown() {
 
         container.innerHTML = `
             <div class="cd-main glass">
-                <p class="cd-main-title">حنا مع بعضياتنا 💕</p>
+                <p class="cd-main-title">Together in Love 💕</p>
                 <div class="cd-grid">
                     <div class="cd-unit">
                         <span class="cd-number" id="cd-days">${days}</span>
-                        <span class="cd-label">يوم</span>
+                        <span class="cd-label">Days</span>
                     </div>
                     <div class="cd-unit">
                         <span class="cd-number" id="cd-hours">${String(hours).padStart(2, '0')}</span>
-                        <span class="cd-label">ساعة</span>
+                        <span class="cd-label">Hours</span>
                     </div>
                     <div class="cd-unit">
                         <span class="cd-number" id="cd-min">${String(minutes).padStart(2, '0')}</span>
-                        <span class="cd-label">دقيقة</span>
+                        <span class="cd-label">Minutes</span>
                     </div>
                     <div class="cd-unit">
                         <span class="cd-number" id="cd-sec">${String(seconds).padStart(2, '0')}</span>
-                        <span class="cd-label">ثانية</span>
+                        <span class="cd-label">Seconds</span>
                     </div>
                 </div>
-                <p class="cd-sub">…و مازال كاين بزاف 💕</p>
+                <p class="cd-sub">…and forever to go 💕</p>
             </div>
 
             ${upcoming.length > 0 ? `
-                <p class="cd-upcoming-title">📆 التواريخ الجاية</p>
+                <p class="cd-upcoming-title">📆 Upcoming Dates</p>
                 ${upcoming.map(c => {
                     const target = new Date(c.date);
                     const daysLeft = Math.ceil((target - Date.now()) / 86400000);
@@ -588,7 +588,7 @@ function loadCountdown() {
                             <span class="cd-item-days">${daysLeft > 0 ? daysLeft : '🎉'}</span>
                             <div class="cd-item-info">
                                 <h4>${c.title}</h4>
-                                <p>${daysLeft > 0 ? `باقي ${daysLeft} يوم` : 'اليوم! 🎉'}</p>
+                                <p>${daysLeft > 0 ? `${daysLeft} days left` : 'Today! 🎉'}</p>
                             </div>
                         </div>`;
                 }).join('')}
@@ -612,15 +612,15 @@ function loadCountdown() {
 
 function createCountdownForm() {
     return `
-        <h3 class="modal-title">زيد تاريخ مميز 📆</h3>
+        <h3 class="modal-title">Add Special Date 📆</h3>
         <div class="form-group">
-            <input class="form-input" id="cd-title" placeholder="شنو المناسبة؟" />
+            <input class="form-input" id="cd-title" placeholder="What is the occasion?" />
         </div>
         <div class="form-group">
-            <label class="form-label">التاريخ</label>
+            <label class="form-label">Date</label>
             <input class="form-input" type="date" id="cd-date" />
         </div>
-        <button class="form-submit" id="save-countdown">حفظ 💕</button>
+        <button class="form-submit" id="save-countdown">Save Date 💕</button>
     `;
 }
 
@@ -630,27 +630,27 @@ function createCountdownForm() {
 async function loadMood() {
     const container = $('#mood-content');
     const partner = DataStore.getPartner(currentUser);
-    const partnerName = partner === 'ali' ? 'علي 💙' : 'آية 💗';
+    const partnerName = partner === 'ali' ? 'Ali 💙' : 'Aya 💗';
 
     const todayMood = await DataStore.getTodayMood(currentUser);
     const partnerMood = await DataStore.getTodayMood(partner);
     const myHistory = await DataStore.getMoods(currentUser);
 
     const moods = [
-        { emoji: '🥰', label: 'حب' },
-        { emoji: '😊', label: 'فرحان' },
-        { emoji: '😴', label: 'نعسان' },
-        { emoji: '😢', label: 'حزين' },
-        { emoji: '😤', label: 'مقلق' },
-        { emoji: '🤒', label: 'مريض' },
-        { emoji: '😍', label: 'مشتاق' },
-        { emoji: '🥳', label: 'محتفل' },
-        { emoji: '😌', label: 'مرتاح' },
-        { emoji: '💪', label: 'قوي' },
+        { emoji: '🥰', label: 'Love' },
+        { emoji: '😊', label: 'Happy' },
+        { emoji: '😴', label: 'Sleepy' },
+        { emoji: '😢', label: 'Sad' },
+        { emoji: '😤', label: 'Upset' },
+        { emoji: '🤒', label: 'Sick' },
+        { emoji: '😍', label: 'Adoring' },
+        { emoji: '🥳', label: 'Excited' },
+        { emoji: '😌', label: 'Peaceful' },
+        { emoji: '💪', label: 'Strong' },
     ];
 
     container.innerHTML = `
-        <p class="mood-section-title">كيف حاس/حاسة اليوم؟</p>
+        <p class="mood-section-title">How are you feeling today?</p>
         <div class="mood-grid">
             ${moods.map(m => `
                 <button class="mood-btn ${todayMood?.emoji === m.emoji ? 'selected' : ''}" data-mood="${m.emoji}">
@@ -660,21 +660,21 @@ async function loadMood() {
             `).join('')}
         </div>
 
-        <p class="mood-section-title">${partnerName} اليوم</p>
+        <p class="mood-section-title">${partnerName} Today</p>
         <div class="mood-partner-card glass">
             <span class="partner-emoji">${partnerMood?.emoji || '🤍'}</span>
             <div class="partner-info">
                 <p>${partnerName}</p>
-                <p>${partnerMood ? 'تشيكا اليوم' : 'ما تشيكا بعد'}</p>
+                <p>${partnerMood ? 'Checked in today' : 'Not checked in yet'}</p>
             </div>
         </div>
 
         ${myHistory.length > 0 ? `
-            <p class="mood-section-title">الأيام اللي فاتو</p>
+            <p class="mood-section-title">Recent Days</p>
             <div class="mood-history">
                 ${myHistory.slice(0, 7).map(m => {
                     const d = new Date(m.date);
-                    const dayName = d.toLocaleDateString('ar-MA', { weekday: 'short' });
+                    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
                     return `
                         <div class="mood-day">
                             <span class="mood-day-emoji">${m.emoji}</span>
@@ -690,7 +690,7 @@ async function loadMood() {
         btn.addEventListener('click', async () => {
             const emoji = btn.dataset.mood;
             await DataStore.setMood(currentUser, emoji);
-            toast(`${emoji} تشيكيتي!`);
+            toast(`${emoji} Checked in!`);
             container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
         });
@@ -708,13 +708,13 @@ async function loadBucketList() {
         container.innerHTML = `
             <div class="empty-state">
                 <span class="empty-state-emoji">📝</span>
-                <p class="empty-state-text">ما كاين حتى هدف بعد<br>زيدو أحلامكم مع بعض!</p>
+                <p class="empty-state-text">No dreams yet<br>Add dreams to achieve together!</p>
             </div>`;
         return;
     }
 
     container.innerHTML = items.map(item => {
-        const by = item.addedBy === 'ali' ? 'علي' : 'آية';
+        const by = item.addedBy === 'ali' ? 'Ali' : 'Aya';
         return `
             <div class="bucket-item glass ${item.completed ? 'done' : ''}" data-bucket-id="${item.id}">
                 <span class="bucket-check">✓</span>
@@ -738,7 +738,7 @@ async function loadBucketList() {
                 triggerHaptic('light');
             }
             loadBucketList();
-            toast(newStatus ? 'تحققت! 🎉' : 'رجعناها للقائمة');
+            toast(newStatus ? 'Achieved! 🎉' : 'Marked active');
         });
     });
 }
@@ -762,7 +762,7 @@ let slideshowInterval = null;
 function startMemorySlideshow() {
     DataStore.getAll('memories').then(memories => {
         if (memories.length === 0) {
-            toast('زيد ذكريات أولا باش تشوفهم 📸');
+            toast('Add memories first to watch the slideshow 📸');
             return;
         }
         let idx = 0;
@@ -791,11 +791,11 @@ function startMemorySlideshow() {
 
 function createBucketForm() {
     return `
-        <h3 class="modal-title">زيد هدف / حلم 📝</h3>
+        <h3 class="modal-title">Add Dream / Goal 📝</h3>
         <div class="form-group">
-            <input class="form-input" id="bucket-title" placeholder="شنو بغيتو تديرو مع بعض؟" />
+            <input class="form-input" id="bucket-title" placeholder="What do you want to do together?" />
         </div>
-        <button class="form-submit" id="save-bucket">زيد 💕</button>
+        <button class="form-submit" id="save-bucket">Add Dream 💕</button>
     `;
 }
 
@@ -812,29 +812,29 @@ async function loadLoveNotes() {
         container.innerHTML = `
             <div class="empty-state">
                 <span class="empty-state-emoji">💕</span>
-                <p class="empty-state-text">كتب كلام حلو لصاحبك/صاحبتك!</p>
+                <p class="empty-state-text">No sweet notes yet<br>Write a sweet message!</p>
             </div>`;
         return;
     }
 
     container.innerHTML = allNotes.map(n => {
-        const from = n.from === 'ali' ? 'علي 💙' : 'آية 💗';
-        const date = new Date(n.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
+        const from = n.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const date = new Date(n.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
         return `
             <div class="lovenote-item glass">
                 <p class="lovenote-text">${n.content}</p>
-                <p class="lovenote-meta">من ${from} · ${date}</p>
+                <p class="lovenote-meta">From ${from} · ${date}</p>
             </div>`;
     }).join('');
 }
 
 function createLoveNoteForm() {
     return `
-        <h3 class="modal-title">كتب كلام حلو 💕</h3>
+        <h3 class="modal-title">Write a Sweet Note 💕</h3>
         <div class="form-group">
-            <textarea class="form-textarea" id="lovenote-content" placeholder="كلام من القلب..." rows="4"></textarea>
+            <textarea class="form-textarea" id="lovenote-content" placeholder="Words from the heart..." rows="4"></textarea>
         </div>
-        <button class="form-submit" id="save-lovenote">إرسال 💕</button>
+        <button class="form-submit" id="save-lovenote">Send 💕</button>
     `;
 }
 
@@ -842,23 +842,23 @@ function createSettingsForm() {
     const isAli = currentUser === 'ali';
     const currentCode = DataStore.getPasscodes()[currentUser] || '1111';
     return `
-        <h3 class="modal-title">الإعدادات ⚙️</h3>
+        <h3 class="modal-title">Settings ⚙️</h3>
         <div class="form-group">
-            <label class="form-label">تبديل كود الدخول (${isAli ? 'علي 💙' : 'آية 💗'})</label>
-            <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 أرقام" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
+            <label class="form-label">Change PIN (${isAli ? 'Ali 💙' : 'Aya 💗'})</label>
+            <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 digits" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
         </div>
-        <button class="form-submit" id="save-passcode">حفظ الكود 💕</button>
+        <button class="form-submit" id="save-passcode">Save PIN 💕</button>
 
         <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:1.5rem 0 1rem;" />
 
         <div class="form-group">
-            <label class="form-label">🔥 ربط Firebase (للمزامنة الفورية بين الهواتف)</label>
+            <label class="form-label">🔥 Link Firebase (Real-time live sync between devices)</label>
             <input class="form-input" id="setting-apikey" placeholder="API Key" value="${FIREBASE_CONFIG.apiKey || ''}" />
         </div>
         <div class="form-group">
             <input class="form-input" id="setting-projectid" placeholder="Project ID" value="${FIREBASE_CONFIG.projectId || ''}" />
         </div>
-        <button class="form-submit" id="save-firebase" style="background:linear-gradient(135deg, #6c5ce7, #a29bfe)">حفظ إعدادات Firebase 🔥</button>
+        <button class="form-submit" id="save-firebase" style="background:linear-gradient(135deg, #6c5ce7, #a29bfe)">Save Firebase Config 🔥</button>
     `;
 }
 
@@ -893,7 +893,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadLetters();
-        toast('تصيفطات الرسالة 💌');
+        toast('Letter sent 💌');
     });
 
     // Save memory
@@ -908,12 +908,12 @@ function attachFormHandlers() {
         memoryImageData = await DataStore.compressImage(file);
         preview.src = memoryImageData;
         preview.style.display = 'block';
-        fileLabel.textContent = '✅ تبدلات الصورة';
+        fileLabel.textContent = '✅ Photo selected';
     });
 
     $('#save-memory')?.addEventListener('click', async () => {
         if (!memoryImageData) {
-            toast('اختار صورة أولا 📷');
+            toast('Choose a photo first 📷');
             return;
         }
         await DataStore.add('memories', {
@@ -924,7 +924,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadMemories();
-        toast('تزادت الذكرى 📸');
+        toast('Memory saved 📸');
     });
 
     // Save timeline
@@ -940,7 +940,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadTimeline();
-        toast('تزادت اللحظة 📅');
+        toast('Milestone added 📅');
     });
 
     // Save countdown
@@ -956,7 +956,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadCountdown();
-        toast('تزاد التاريخ 📆');
+        toast('Date saved 📆');
     });
 
     // Save bucket item
@@ -970,7 +970,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadBucketList();
-        toast('تزاد الحلم 📝');
+        toast('Dream added 📝');
     });
 
     // Save love note
@@ -985,7 +985,7 @@ function attachFormHandlers() {
         });
         closeModal();
         loadLoveNotes();
-        toast('تصيفط الكلام الحلو 💕');
+        toast('Sweet note sent 💕');
     });
 
     // Save passcode
@@ -997,9 +997,9 @@ function attachFormHandlers() {
             localStorage.setItem('ayati_passcodes', JSON.stringify(passcodes));
             triggerHaptic('success');
             closeModal();
-            toast('تبدل الكود بنجاح 🔒');
+            toast('PIN updated successfully 🔒');
         } else {
-            toast('الكود خاصو يكون من 4 أرقام!');
+            toast('PIN must be 4 digits!');
         }
     });
 
@@ -1019,10 +1019,10 @@ function attachFormHandlers() {
             localStorage.setItem('ayati_fb_config', JSON.stringify(config));
             triggerHaptic('success');
             closeModal();
-            toast('تحفظو إعدادات Firebase 🔥 — كليكي رافرشي الصفحة');
+            toast('Firebase configured! Reloading...');
             setTimeout(() => location.reload(), 1500);
         } else {
-            toast('عمر المعطيات أولا!');
+            toast('Please fill in all fields first!');
         }
     });
 }
