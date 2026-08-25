@@ -187,6 +187,8 @@ function navigateTo(viewId, pushState = true) {
         case 'mood': loadMood(); break;
         case 'bucketlist': loadBucketList(); break;
         case 'lovenotes': loadLoveNotes(); break;
+        case 'daily': loadDailyQuestion(); break;
+        case 'voicenotes': loadVoiceNotes(); break;
     }
 }
 
@@ -285,6 +287,7 @@ function setupNavigation() {
     $('#fab-countdown')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createCountdownForm()); });
     $('#fab-bucket')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createBucketForm()); });
     $('#fab-lovenote')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createLoveNoteForm()); });
+    $('#fab-voicenote')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createVoiceRecorderForm()); });
 
     // Modal close
     $('#modal-close')?.addEventListener('click', closeModal);
@@ -473,7 +476,7 @@ function loadDashboard() {
 }
 
 // ===================================================================
-// LETTERS
+// LETTERS (With Time-Lock Capsule support)
 // ===================================================================
 async function loadLetters() {
     const container = $('#letters-list');
@@ -492,13 +495,18 @@ async function loadLetters() {
         const isUnread = l.to === currentUser && !l.read;
         const fromName = l.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
         const date = new Date(l.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+        const isLocked = l.unlockDate && (new Date(l.unlockDate).getTime() > Date.now()) && l.to === currentUser;
+        const unlockFormatted = l.unlockDate ? new Date(l.unlockDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
         return `
-            <div class="letter-item glass ${isUnread ? 'unread' : ''}" data-letter-id="${l.id}">
+            <div class="letter-item glass ${isUnread ? 'unread' : ''} ${isLocked ? 'locked' : ''}" data-letter-id="${l.id}">
                 <div class="letter-item-header">
                     <span class="letter-item-from">${fromName}</span>
-                    <span class="letter-item-date">${date}</span>
+                    ${isLocked ? `<span class="lock-pill">🔒 Sealed until ${unlockFormatted}</span>` : `<span class="letter-item-date">${date}</span>`}
                 </div>
-                <p class="letter-item-preview">${l.content}</p>
+                <p class="letter-item-preview ${isLocked ? 'letter-preview-locked' : ''}">
+                    ${isLocked ? 'This love letter is sealed until ' + unlockFormatted + ' 🔒' : l.content}
+                </p>
             </div>`;
     }).join('');
 
@@ -512,6 +520,20 @@ async function openLetter(id) {
     const letters = await DataStore.getAll('letters');
     const letter = letters.find(l => l.id === id);
     if (!letter) return;
+
+    // Check if time-locked
+    if (letter.unlockDate && (new Date(letter.unlockDate).getTime() > Date.now()) && letter.to === currentUser) {
+        SoundFX.error();
+        triggerHaptic('error');
+        const card = $(`[data-letter-id="${id}"]`);
+        if (card) {
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 500);
+        }
+        const unlockDateStr = new Date(letter.unlockDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        toast(`🔒 Sealed until ${unlockDateStr}! Hold the anticipation 💕`);
+        return;
+    }
 
     // Mark as read
     if (letter.to === currentUser && !letter.read) {
@@ -546,6 +568,13 @@ function createLetterForm() {
         <h3 class="modal-title">Write a letter to ${partnerName} 💌</h3>
         <div class="form-group">
             <textarea class="form-textarea" id="letter-content" placeholder="Write from your heart..." rows="6"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">🔒 Time-Lock Capsule (Optional)</label>
+            <input class="form-input" type="date" id="letter-unlock-date" />
+            <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);margin-top:0.35rem;">
+                Keep this letter sealed until a future anniversary or special date!
+            </p>
         </div>
         <button class="form-submit" id="send-letter">Send 💕</button>
     `;
@@ -965,6 +994,251 @@ function createLoveNoteForm() {
     `;
 }
 
+// ===================================================================
+// DAILY COUPLE QUESTIONS (Q&A)
+// ===================================================================
+const DAILY_QUESTIONS = [
+    "What was the exact moment you realized you had feelings for me?",
+    "If we could teleport anywhere in the world together right now, where would we go?",
+    "What is your favorite memory of us from this past month?",
+    "What is a small habit of mine that secretly makes you smile?",
+    "If our love story was turned into a movie, what would its title be?",
+    "What is one song that always makes you think of me?",
+    "What are you most excited for in our future together?",
+    "What was your very first impression when you saw me for the first time?",
+    "What is your absolute favorite thing we do together when we are relaxing?",
+    "If you could describe our love in three words, what would they be?",
+    "What is one dream you want us to accomplish together this year?",
+    "What is something I did recently that made you feel deeply loved?",
+    "What is your favorite photo of the two of us and why?",
+    "If we had a whole day with no obligations, how would we spend it?",
+    "What is one thing about me that always makes you laugh, no matter what?",
+    "What is your favorite compliment I ever gave you?",
+    "How have we helped each other grow since we met?",
+    "What is a cute romantic date we haven't done yet that you want to try?",
+    "What is something you appreciate about me that you don't say often enough?",
+    "When do you feel most connected to me?"
+];
+
+function getTodayQuestion() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now - start;
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return {
+        id: `q_${now.toISOString().split('T')[0]}`,
+        date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+        text: DAILY_QUESTIONS[dayOfYear % DAILY_QUESTIONS.length]
+    };
+}
+
+async function loadDailyQuestion() {
+    const container = $('#daily-content');
+    const today = getTodayQuestion();
+    const allAnswers = await DataStore.getAll('dailyanswers');
+    const partner = DataStore.getPartner(currentUser);
+    const partnerName = partner === 'ali' ? 'Ali 💙' : 'Aya 💗';
+    const myName = currentUser === 'ali' ? 'Ali 💙' : 'Aya 💗';
+
+    const myAnswer = allAnswers.find(a => a.questionId === today.id && a.user === currentUser);
+    const partnerAnswer = allAnswers.find(a => a.questionId === today.id && a.user === partner);
+    const bothAnswered = !!(myAnswer && partnerAnswer);
+
+    let html = `
+        <div class="daily-q-box glass">
+            <span class="daily-date-pill">📆 ${today.date}</span>
+            <h3 class="daily-question-title">"${today.text}"</h3>
+    `;
+
+    if (!myAnswer) {
+        html += `
+            <div class="daily-answer-form">
+                <textarea class="form-textarea" id="daily-answer-input" placeholder="Write your honest answer from the heart..." rows="4"></textarea>
+                <button class="form-submit" id="save-daily-answer">Submit Answer 💕</button>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="daily-answers-reveal">
+                <div class="answer-bubble">
+                    <div class="answer-bubble-header">
+                        <span class="answer-author">${myName} (You)</span>
+                        <span class="lock-pill">✅ Answered</span>
+                    </div>
+                    <p class="answer-text">${myAnswer.text}</p>
+                </div>
+        `;
+
+        if (bothAnswered) {
+            html += `
+                <div class="answer-bubble">
+                    <div class="answer-bubble-header">
+                        <span class="answer-author">${partnerName}</span>
+                        <span class="lock-pill">💕 Revealed</span>
+                    </div>
+                    <p class="answer-text">${partnerAnswer.text}</p>
+                </div>
+            </div>`;
+        } else {
+            html += `
+            </div>
+            <div class="partner-locked-banner">
+                🔒 Waiting for ${partnerName} to answer...<br>
+                Both answers will be revealed once you both respond!
+            </div>`;
+        }
+    }
+
+    html += `</div>`;
+
+    // Past answered questions history
+    const pastAnswers = allAnswers.filter(a => a.questionId !== today.id);
+    if (pastAnswers.length > 0) {
+        html += `<h4 style="margin:1.5rem 0 0.8rem;color:var(--peach);font-size:0.9rem;">📜 Past Questions</h4>`;
+        const grouped = {};
+        pastAnswers.forEach(a => {
+            if (!grouped[a.questionId]) grouped[a.questionId] = { text: a.questionText, date: a.date, answers: [] };
+            grouped[a.questionId].answers.push(a);
+        });
+        Object.values(grouped).forEach(g => {
+            html += `
+                <div class="dash-card glass" style="margin-bottom:0.75rem;padding:1rem;">
+                    <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-bottom:0.3rem;">${g.date || 'Past'}</p>
+                    <h5 style="font-size:0.95rem;margin-bottom:0.6rem;color:var(--white-soft);">${g.text || ''}</h5>
+                    ${g.answers.map(ans => `
+                        <div style="font-size:0.85rem;color:rgba(255,255,255,0.75);margin-top:0.3rem;padding-left:0.6rem;border-left:2px solid var(--blush);">
+                            <strong>${ans.user === 'ali' ? 'Ali 💙' : 'Aya 💗'}:</strong> ${ans.text}
+                        </div>
+                    `).join('')}
+                </div>`;
+        });
+    }
+
+    container.innerHTML = html;
+
+    $('#save-daily-answer')?.addEventListener('click', async () => {
+        const text = $('#daily-answer-input')?.value.trim();
+        if (!text) return;
+        triggerHaptic('success');
+        SoundFX.success();
+        await DataStore.add('dailyanswers', {
+            questionId: today.id,
+            questionText: today.text,
+            date: today.date,
+            user: currentUser,
+            text
+        });
+        toast('Answer saved! 💕');
+        loadDailyQuestion();
+    });
+}
+
+// ===================================================================
+// VOICE MEMOS
+// ===================================================================
+let _currentAudio = null;
+
+async function loadVoiceNotes() {
+    const container = $('#voicenotes-content');
+    const notes = await DataStore.getAll('voicenotes');
+
+    if (notes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-emoji">🎙️</span>
+                <p class="empty-state-text">No voice memos yet<br>Tap the mic button to record your voice!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = notes.map(n => {
+        const fromName = n.from === 'ali' ? 'Ali 💙' : 'Aya 💗';
+        const date = new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const durationStr = n.duration ? `${n.duration}s` : 'Voice note';
+        return `
+            <div class="vn-card glass" data-vn-id="${n.id}">
+                <button class="vn-play-btn" id="play-vn-${n.id}">▶</button>
+                <div class="vn-info">
+                    <div class="vn-header">
+                        <span class="vn-sender">${fromName}</span>
+                        <span class="vn-date">${date} · ${durationStr}</span>
+                    </div>
+                    <div class="vn-bar-wrap" id="bar-vn-${n.id}">
+                        <div class="vn-progress" id="prog-vn-${n.id}"></div>
+                    </div>
+                </div>
+                ${n.from === currentUser ? `<button class="delete-btn" style="padding:0.4rem 0.6rem;font-size:0.75rem;margin:0;" id="del-vn-${n.id}">✕</button>` : ''}
+            </div>`;
+    }).join('');
+
+    notes.forEach(n => {
+        const btn = $(`#play-vn-${n.id}`);
+        const prog = $(`#prog-vn-${n.id}`);
+        const delBtn = $(`#del-vn-${n.id}`);
+
+        delBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await DataStore.remove('voicenotes', n.id);
+            if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+            loadVoiceNotes();
+            toast('Voice memo deleted 🗑️');
+        });
+
+        btn?.addEventListener('click', () => {
+            if (_currentAudio && _currentAudio.dataset.id === n.id && !_currentAudio.paused) {
+                _currentAudio.pause();
+                btn.textContent = '▶';
+                return;
+            }
+
+            if (_currentAudio) {
+                _currentAudio.pause();
+                $$('.vn-play-btn').forEach(b => b.textContent = '▶');
+            }
+
+            const audio = new Audio(n.audio);
+            audio.dataset.id = n.id;
+            _currentAudio = audio;
+            btn.textContent = '⏸';
+            SoundFX.tap(500);
+
+            audio.ontimeupdate = () => {
+                const pct = (audio.currentTime / (audio.duration || 1)) * 100;
+                if (prog) prog.style.width = pct + '%';
+            };
+
+            audio.onended = () => {
+                btn.textContent = '▶';
+                if (prog) prog.style.width = '0%';
+                _currentAudio = null;
+            };
+
+            audio.play().catch(e => console.warn('Audio play error:', e));
+        });
+    });
+}
+
+let _mediaRecorder = null;
+let _audioChunks = [];
+let _recordInterval = null;
+let _recordSeconds = 0;
+let _recordedBase64 = null;
+
+function createVoiceRecorderForm() {
+    return `
+        <h3 class="modal-title">Record Voice Memo 🎙️</h3>
+        <div class="vn-record-box">
+            <p class="record-timer" id="vn-timer">00:00</p>
+            <button class="record-pulse-btn" id="vn-record-toggle">🎙️</button>
+            <p id="vn-status-text" style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:1rem;">Tap mic to start recording</p>
+            <div id="vn-preview-wrap" style="display:none;margin-top:1rem;">
+                <audio id="vn-audio-preview" controls style="width:100%;margin-bottom:1rem;"></audio>
+                <button class="form-submit" id="save-voicenote">Send Voice Memo 💕</button>
+            </div>
+        </div>
+    `;
+}
+
 function createSettingsForm() {
     const isAli = currentUser === 'ali';
     const currentCode = DataStore.getPasscodes()[currentUser] || '1111';
@@ -1012,10 +1286,12 @@ function attachFormHandlers() {
     // Send letter
     $('#send-letter')?.addEventListener('click', async () => {
         const content = $('#letter-content')?.value.trim();
+        const unlockDate = $('#letter-unlock-date')?.value || null;
         if (!content) return;
         const partner = DataStore.getPartner(currentUser);
         await DataStore.add('letters', {
             content,
+            unlockDate,
             from: currentUser,
             to: partner,
             read: false,
@@ -1023,7 +1299,7 @@ function attachFormHandlers() {
         SoundFX.success();
         closeModal();
         loadLetters();
-        toast('Letter sent 💌');
+        toast(unlockDate ? 'Time-locked letter sent 🔒💌' : 'Letter sent 💌');
     });
 
     // Save memory
@@ -1118,6 +1394,82 @@ function attachFormHandlers() {
         closeModal();
         loadLoveNotes();
         toast('Sweet note sent 💕');
+    });
+
+    // Voice recorder modal interactions
+    const recToggle = $('#vn-record-toggle');
+    const timerEl = $('#vn-timer');
+    const statusText = $('#vn-status-text');
+    const previewWrap = $('#vn-preview-wrap');
+    const audioPreview = $('#vn-audio-preview');
+
+    recToggle?.addEventListener('click', async () => {
+        if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+            // Stop recording
+            _mediaRecorder.stop();
+            clearInterval(_recordInterval);
+            recToggle.classList.remove('recording');
+            statusText.textContent = 'Recording finished!';
+            SoundFX.pop();
+        } else {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                _audioChunks = [];
+                _recordSeconds = 0;
+                _mediaRecorder = new MediaRecorder(stream);
+
+                _mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) _audioChunks.push(e.data);
+                };
+
+                _mediaRecorder.onstop = () => {
+                    const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        _recordedBase64 = reader.result;
+                        if (audioPreview) audioPreview.src = _recordedBase64;
+                        if (previewWrap) previewWrap.style.display = 'block';
+                    };
+                    reader.readAsDataURL(blob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                _mediaRecorder.start();
+                recToggle.classList.add('recording');
+                statusText.textContent = 'Recording in progress... (Tap to stop)';
+                SoundFX.tap(600);
+
+                _recordInterval = setInterval(() => {
+                    _recordSeconds++;
+                    const min = String(Math.floor(_recordSeconds / 60)).padStart(2, '0');
+                    const sec = String(_recordSeconds % 60).padStart(2, '0');
+                    if (timerEl) timerEl.textContent = `${min}:${sec}`;
+                    if (_recordSeconds >= 60) {
+                        _mediaRecorder.stop();
+                        clearInterval(_recordInterval);
+                    }
+                }, 1000);
+            } catch (err) {
+                toast('Microphone permission required 🎙️');
+                console.warn('Microphone error:', err);
+            }
+        }
+    });
+
+    $('#save-voicenote')?.addEventListener('click', async () => {
+        if (!_recordedBase64) return;
+        const partner = DataStore.getPartner(currentUser);
+        await DataStore.add('voicenotes', {
+            audio: _recordedBase64,
+            duration: _recordSeconds,
+            from: currentUser,
+            to: partner
+        });
+        SoundFX.success();
+        closeModal();
+        loadVoiceNotes();
+        toast('Voice memo sent 💕🎙️');
     });
 
     // Save passcode

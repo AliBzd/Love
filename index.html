@@ -139,6 +139,14 @@
                     <span class="feature-emoji">😊</span>
                     <span class="feature-label">Daily Mood</span>
                 </button>
+                <button class="feature-btn glass" data-nav="daily">
+                    <span class="feature-emoji">❓</span>
+                    <span class="feature-label">Daily Q&A</span>
+                </button>
+                <button class="feature-btn glass" data-nav="voicenotes">
+                    <span class="feature-emoji">🎙️</span>
+                    <span class="feature-label">Voice Memos</span>
+                </button>
                 <button class="feature-btn glass" data-nav="bucketlist">
                     <span class="feature-emoji">📝</span>
                     <span class="feature-label">Bucket List</span>
@@ -163,6 +171,25 @@
         </header>
         <div class="view-scroll" id="letters-list"></div>
         <button class="fab" id="fab-letter" aria-label="Write letter">✏️</button>
+    </div>
+
+    <!-- ===================== DAILY QUESTION ===================== -->
+    <div id="view-daily" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>❓ Question of the Day</h2>
+        </header>
+        <div class="view-scroll" id="daily-content"></div>
+    </div>
+
+    <!-- ===================== VOICE NOTES ===================== -->
+    <div id="view-voicenotes" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">←</button>
+            <h2>🎙️ Voice Memos</h2>
+        </header>
+        <div class="view-scroll" id="voicenotes-content"></div>
+        <button class="fab" id="fab-voicenote" aria-label="Record voice note">🎙️</button>
     </div>
 
     <!-- ===================== MEMORIES ===================== -->
