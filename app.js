@@ -56,13 +56,101 @@ function updateThemeColor(user) {
     else meta.content = '#1a0a1e';
 }
 
+// ─── Native Web Audio SoundFX for iOS ─────────────────────────────
+const SoundFX = (() => {
+    let ctx = null;
+    function getCtx() {
+        if (!ctx && (window.AudioContext || window.webkitAudioContext)) {
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume();
+        }
+        return ctx;
+    }
+
+    return {
+        tap(freq = 580, duration = 0.03) {
+            try {
+                const c = getCtx();
+                if (!c) return;
+                const osc = c.createOscillator();
+                const gain = c.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, c.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(160, c.currentTime + duration);
+                gain.gain.setValueAtTime(0.06, c.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(c.destination);
+                osc.start();
+                osc.stop(c.currentTime + duration);
+            } catch (e) {}
+        },
+        pop() {
+            try {
+                const c = getCtx();
+                if (!c) return;
+                const osc = c.createOscillator();
+                const gain = c.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, c.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(820, c.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, c.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.09);
+                osc.connect(gain);
+                gain.connect(c.destination);
+                osc.start();
+                osc.stop(c.currentTime + 0.09);
+            } catch (e) {}
+        },
+        success() {
+            try {
+                const c = getCtx();
+                if (!c) return;
+                [523.25, 659.25, 783.99].forEach((freq, i) => {
+                    const osc = c.createOscillator();
+                    const gain = c.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, c.currentTime + i * 0.06);
+                    gain.gain.setValueAtTime(0.08, c.currentTime + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.06 + 0.18);
+                    osc.connect(gain);
+                    gain.connect(c.destination);
+                    osc.start(c.currentTime + i * 0.06);
+                    osc.stop(c.currentTime + i * 0.06 + 0.18);
+                });
+            } catch (e) {}
+        },
+        error() {
+            try {
+                const c = getCtx();
+                if (!c) return;
+                [220, 175].forEach((freq, i) => {
+                    const osc = c.createOscillator();
+                    const gain = c.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, c.currentTime + i * 0.08);
+                    gain.gain.setValueAtTime(0.08, c.currentTime + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.08 + 0.12);
+                    osc.connect(gain);
+                    gain.connect(c.destination);
+                    osc.start(c.currentTime + i * 0.08);
+                    osc.stop(c.currentTime + i * 0.08 + 0.12);
+                });
+            } catch (e) {}
+        }
+    };
+})();
+
 // ─── Mobile Haptics ───────────────────────────────────────────────
 function triggerHaptic(type = 'light') {
-    if (!navigator.vibrate) return;
-    if (type === 'light') navigator.vibrate(10);
-    else if (type === 'medium') navigator.vibrate(25);
-    else if (type === 'success') navigator.vibrate([15, 30, 20]);
-    else if (type === 'error') navigator.vibrate([50, 40, 50]);
+    if (navigator.vibrate) {
+        if (type === 'light') navigator.vibrate(10);
+        else if (type === 'medium') navigator.vibrate(25);
+        else if (type === 'success') navigator.vibrate([15, 30, 20]);
+        else if (type === 'error') navigator.vibrate([50, 40, 50]);
+    }
 }
 
 // ===================================================================
@@ -119,11 +207,35 @@ function setupNavigation() {
         navigateTo(view, false);
     });
 
+    // iOS Left-Edge Swipe to go back gesture
+    let edgeStartX = 0, edgeStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        edgeStartX = e.touches[0].clientX;
+        edgeStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        if (edgeStartX > 45) return; // Only trigger if touch started within 45px of screen edge
+        if (currentView === 'dashboard' || currentView === 'login') return;
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - edgeStartX;
+        const dy = Math.abs(touch.clientY - edgeStartY);
+        if (dx > 70 && dy < 60) {
+            triggerHaptic('light');
+            SoundFX.tap(520);
+            navigateTo('dashboard');
+        }
+        edgeStartX = 0;
+        edgeStartY = 0;
+    }, { passive: true });
+
     // Feature grid buttons
     document.addEventListener('click', (e) => {
         const navBtn = e.target.closest('[data-nav]');
         if (navBtn) {
             triggerHaptic('light');
+            SoundFX.tap(650);
             navigateTo(navBtn.dataset.nav);
         }
     });
@@ -143,6 +255,7 @@ function setupNavigation() {
     // Miss You button
     $('#miss-you-btn')?.addEventListener('click', async () => {
         triggerHaptic('success');
+        SoundFX.pop();
         triggerLoveBurstAnim();
         const partner = DataStore.getPartner(currentUser);
         await DataStore.add('missyou', {
@@ -244,6 +357,7 @@ function setupLogin() {
     $$('.key-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             triggerHaptic('light');
+            SoundFX.tap(620);
             const key = btn.dataset.key;
             if (key === 'clear') {
                 passcodeBuffer = passcodeBuffer.slice(0, -1);
@@ -277,13 +391,17 @@ function verifyPasscode() {
     if (passcodeBuffer === codes[selectedLoginUser]) {
         // Success
         triggerHaptic('success');
+        SoundFX.success();
         currentUser = selectedLoginUser;
         DataStore.setUser(currentUser);
         updateThemeColor(currentUser);
         navigateTo('dashboard');
+        // Smoothly start music upon login unlock
+        startMusicOnUnlock();
     } else {
         // Error
         triggerHaptic('error');
+        SoundFX.error();
         $('#passcode-dots').classList.add('error');
         $('#login-error').textContent = 'Incorrect PIN ❌';
         setTimeout(() => {
@@ -689,6 +807,8 @@ async function loadMood() {
     container.querySelectorAll('.mood-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const emoji = btn.dataset.mood;
+            triggerHaptic('light');
+            SoundFX.pop();
             await DataStore.setMood(currentUser, emoji);
             toast(`${emoji} Checked in!`);
             container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
@@ -733,9 +853,11 @@ async function loadBucketList() {
             await DataStore.update('bucketlist', id, { completed: newStatus });
             if (newStatus) {
                 triggerHaptic('success');
+                SoundFX.success();
                 triggerConfetti();
             } else {
                 triggerHaptic('light');
+                SoundFX.tap(400);
             }
             loadBucketList();
             toast(newStatus ? 'Achieved! 🎉' : 'Marked active');
@@ -891,6 +1013,7 @@ function attachFormHandlers() {
             to: partner,
             read: false,
         });
+        SoundFX.success();
         closeModal();
         loadLetters();
         toast('Letter sent 💌');
@@ -922,6 +1045,7 @@ function attachFormHandlers() {
             date: $('#memory-date')?.value || '',
             uploadedBy: currentUser,
         });
+        SoundFX.success();
         closeModal();
         loadMemories();
         toast('Memory saved 📸');
@@ -983,6 +1107,7 @@ function attachFormHandlers() {
             from: currentUser,
             to: partner,
         });
+        SoundFX.pop();
         closeModal();
         loadLoveNotes();
         toast('Sweet note sent 💕');
@@ -1166,21 +1291,31 @@ function setupSparkle() {
 // ===================================================================
 // MUSIC (YouTube)
 // ===================================================================
+let _bgPlayer = null;
+let _bgPlaying = false;
+let _bgReady = false;
+
+function startMusicOnUnlock() {
+    if (_bgReady && _bgPlayer && !_bgPlaying) {
+        try {
+            _bgPlayer.playVideo();
+            _bgPlaying = true;
+            $('#music-btn')?.classList.add('playing');
+        } catch (e) {}
+    }
+}
+
 function setupMusic() {
     const btn = document.getElementById('music-btn');
     if (!btn) return;
 
-    let playing = false;
-    let player = null;
-    let playerReady = false;
-
     function markPlaying() {
-        playing = true;
+        _bgPlaying = true;
         btn.classList.add('playing');
     }
 
     window.onYouTubeIframeAPIReady = function () {
-        player = new YT.Player('yt-player', {
+        _bgPlayer = new YT.Player('yt-player', {
             videoId: 'HLEZYcpoIN4',
             playerVars: {
                 autoplay: 1,
@@ -1194,14 +1329,14 @@ function setupMusic() {
             },
             events: {
                 onReady: function () {
-                    playerReady = true;
-                    player.setVolume(35);
-                    player.playVideo();
+                    _bgReady = true;
+                    _bgPlayer.setVolume(35);
+                    _bgPlayer.playVideo();
                     markPlaying();
                 },
                 onStateChange: function (e) {
-                    if (e.data === YT.PlayerState.PLAYING && !playing) markPlaying();
-                    if (e.data === YT.PlayerState.ENDED) player.playVideo();
+                    if (e.data === YT.PlayerState.PLAYING && !_bgPlaying) markPlaying();
+                    if (e.data === YT.PlayerState.ENDED && _bgPlayer) _bgPlayer.playVideo();
                 },
             },
         });
@@ -1209,13 +1344,13 @@ function setupMusic() {
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!playerReady || !player) return;
-        if (playing) {
-            player.pauseVideo();
+        if (!_bgReady || !_bgPlayer) return;
+        if (_bgPlaying) {
+            _bgPlayer.pauseVideo();
             btn.classList.remove('playing');
-            playing = false;
+            _bgPlaying = false;
         } else {
-            player.playVideo();
+            _bgPlayer.playVideo();
             markPlaying();
         }
     });

@@ -13,6 +13,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Ayati" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23fd79a8'/><stop offset='50%25' stop-color='%236c5ce7'/><stop offset='100%25' stop-color='%231a0a1e'/></linearGradient></defs><rect width='180' height='180' rx='40' fill='url(%23bg)'/><text x='50%25' y='58%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>💕</text></svg>" />
     <link rel="manifest" href="manifest.json" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -325,6 +327,7 @@
     <!-- ===================== MODAL ===================== -->
     <div id="modal-overlay" class="modal-overlay" hidden>
         <div class="modal-card glass" id="modal-card">
+            <div class="modal-handle"></div>
             <button class="modal-close" id="modal-close">✕</button>
             <div id="modal-body"></div>
         </div>
