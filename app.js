@@ -457,7 +457,7 @@ function loadDashboard() {
     DataStore.getTodayMood(partner).then(mood => {
         if (mood) {
             $('#dash-partner-mood').textContent = mood.emoji;
-            $('#dash-partner-status').textContent = 'Today';
+            $('#dash-partner-status').textContent = getMoodLabel(mood.emoji);
         } else {
             $('#dash-partner-mood').textContent = '🤍';
             $('#dash-partner-status').textContent = 'Not checked in yet';
@@ -821,6 +821,23 @@ function createCountdownForm() {
 // ===================================================================
 // MOOD
 // ===================================================================
+const MOOD_DICT = {
+    '🥰': 'Loving & in love 💕',
+    '😊': 'Happy & cheerful 🌸',
+    '😴': 'Sleepy & cozy 🌙',
+    '😢': 'Sad & needs hugs 🥺',
+    '😤': 'A bit frustrated 🤍',
+    '🤒': 'Feeling unwell 🤒',
+    '😍': 'Adoring & obsessed 😍',
+    '🥳': 'Excited & energetic 🎉',
+    '😌': 'Calm & peaceful ✨',
+    '💪': 'Strong & motivated 💪'
+};
+
+function getMoodLabel(emoji) {
+    return MOOD_DICT[emoji] || (emoji ? `${emoji} Feeling good` : 'Not checked in yet');
+}
+
 async function loadMood() {
     const container = $('#mood-content');
     const partner = DataStore.getPartner(currentUser);
@@ -859,7 +876,7 @@ async function loadMood() {
             <span class="partner-emoji">${partnerMood?.emoji || '🤍'}</span>
             <div class="partner-info">
                 <p>${partnerName}</p>
-                <p>${partnerMood ? 'Checked in today' : 'Not checked in yet'}</p>
+                <p>${partnerMood ? getMoodLabel(partnerMood.emoji) : 'Not checked in yet'}</p>
             </div>
         </div>
 
@@ -1989,7 +2006,7 @@ function setupRealtimeNotifications() {
         const todayMood = (moods || []).find(m => m.date === today);
         if (todayMood && $('#dash-partner-mood')) {
             $('#dash-partner-mood').textContent = todayMood.emoji;
-            $('#dash-partner-status').textContent = 'Today';
+            $('#dash-partner-status').textContent = getMoodLabel(todayMood.emoji);
         }
     });
 }
