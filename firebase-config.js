@@ -281,7 +281,17 @@ const DataStore = {
     // ─── Mood helpers ─────────────────────────────────────
     async getMoods(user) {
         if (_firebaseReady) {
-            return this.getAll(`moods_${user}`);
+            try {
+                const snap = await _db.collection(`moods_${user}`).orderBy("createdAt", "desc").limit(30).get();
+                const items = [];
+                snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+                if (items.length > 0) {
+                    _lsSet(`moods_${user}`, items);
+                    return items;
+                }
+            } catch (e) {
+                console.warn(`Firestore getMoods(${user}) error:`, e);
+            }
         }
         return _lsGet(`moods_${user}`) || [];
     },
@@ -314,6 +324,22 @@ const DataStore = {
 
     async getTodayMood(user) {
         const today = new Date().toISOString().split("T")[0];
+        if (_firebaseReady) {
+            try {
+                const doc = await _db.collection(`moods_${user}`).doc(today).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const moods = _lsGet(`moods_${user}`) || [];
+                    const idx = moods.findIndex(m => m.date === today);
+                    if (idx !== -1) moods[idx] = data;
+                    else moods.unshift(data);
+                    _lsSet(`moods_${user}`, moods);
+                    return data;
+                }
+            } catch (e) {
+                console.warn(`Firestore getTodayMood(${user}) error:`, e);
+            }
+        }
         const moods = _lsGet(`moods_${user}`) || [];
         return moods.find(m => m.date === today) || null;
     },

@@ -846,9 +846,12 @@ async function loadMood() {
             triggerHaptic('light');
             SoundFX.pop();
             await DataStore.setMood(currentUser, emoji);
+            const myName = currentUser === 'ali' ? 'Ali' : 'Aya';
+            sendRemotePushNotification(partner, 'Daily Mood Check-in 😊', `${myName} checked in their mood: ${emoji}`);
             toast(`${emoji} Checked in!`);
             container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
+            loadMood();
         });
     });
 }
@@ -1935,6 +1938,18 @@ function setupRealtimeNotifications() {
         const newNote = notes.find(n => n.to === currentUser && n.createdAt > lastCheckedTime);
         if (newNote) {
             sendSystemNotification('Sweet Words 💕', `${partnerName} sent you a sweet note!`, 'note');
+        }
+    });
+
+    // Real-time Partner Mood updates
+    const partnerKey = currentUser === 'ali' ? 'aya' : 'ali';
+    DataStore.listen(`moods_${partnerKey}`, (moods) => {
+        if (!currentUser) return;
+        const today = new Date().toISOString().split('T')[0];
+        const todayMood = (moods || []).find(m => m.date === today);
+        if (todayMood && $('#dash-partner-mood')) {
+            $('#dash-partner-mood').textContent = todayMood.emoji;
+            $('#dash-partner-status').textContent = 'Today';
         }
     });
 }
