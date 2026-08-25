@@ -1,0 +1,1222 @@
+/* ===================================================================
+   FATIMTI — app.js
+   Relationship keeper: router, auth, all features
+   DataStore is loaded globally from firebase-config.js
+   =================================================================== */
+
+// ─── State ────────────────────────────────────────────────────────
+let currentUser = null;   // "ali" | "fatima"
+let currentView = 'login';
+let passcodeBuffer = '';
+let selectedLoginUser = null;
+let countdownInterval = null;
+
+// Anniversary date
+const ANNIVERSARY = new Date('2026-05-13T00:00:00');
+
+// ─── DOM Cache ────────────────────────────────────────────────────
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// ===================================================================
+// INIT
+// ===================================================================
+(async function init() {
+    await DataStore.init();
+
+    // Check saved session
+    const saved = DataStore.getUser();
+    if (saved) {
+        currentUser = saved;
+        updateThemeColor(currentUser);
+        navigateTo('dashboard');
+    }
+
+    setupLogin();
+    setupNavigation();
+    setupLoveBurst();
+    setupSparkle();
+    setupMusic();
+    initHeartsCanvas();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch((e) => console.log('SW reg failed:', e));
+        });
+    }
+})();
+
+// ─── Theme Color Update ───────────────────────────────────────────
+function updateThemeColor(user) {
+    const meta = $('meta[name="theme-color"]');
+    if (!meta) return;
+    if (user === 'ali') meta.content = '#2d132c';
+    else if (user === 'fatima') meta.content = '#3b0a30';
+    else meta.content = '#1a0a1e';
+}
+
+// ─── Mobile Haptics ───────────────────────────────────────────────
+function triggerHaptic(type = 'light') {
+    if (!navigator.vibrate) return;
+    if (type === 'light') navigator.vibrate(10);
+    else if (type === 'medium') navigator.vibrate(25);
+    else if (type === 'success') navigator.vibrate([15, 30, 20]);
+    else if (type === 'error') navigator.vibrate([50, 40, 50]);
+}
+
+// ===================================================================
+// ROUTER
+// ===================================================================
+function navigateTo(viewId, pushState = true) {
+    const prev = $(`.view.active`);
+    const next = $(`#view-${viewId}`);
+    if (!next || (prev === next)) return;
+
+    if (pushState) {
+        history.pushState({ view: viewId }, '', `#${viewId}`);
+    }
+
+    // Slide out old view
+    if (prev) {
+        prev.classList.add('slide-out');
+        prev.classList.remove('active');
+        setTimeout(() => prev.classList.remove('slide-out'), 400);
+    }
+
+    // Slide in new view
+    next.classList.add('active');
+    currentView = viewId;
+
+    // Load view data
+    switch (viewId) {
+        case 'dashboard': loadDashboard(); break;
+        case 'letters': loadLetters(); break;
+        case 'memories': loadMemories(); break;
+        case 'timeline': loadTimeline(); break;
+        case 'countdown': loadCountdown(); break;
+        case 'mood': loadMood(); break;
+        case 'bucketlist': loadBucketList(); break;
+        case 'lovenotes': loadLoveNotes(); break;
+    }
+}
+
+// ===================================================================
+// NAVIGATION SETUP
+// ===================================================================
+function setupNavigation() {
+    // Mobile Back Button / Gesture handling
+    window.addEventListener('popstate', (e) => {
+        if (!$('#modal-overlay').hidden) {
+            closeModal();
+            return;
+        }
+        if (!$('#lightbox').hidden) {
+            $('#lightbox').hidden = true;
+            return;
+        }
+        const view = e.state?.view || (currentUser ? 'dashboard' : 'login');
+        navigateTo(view, false);
+    });
+
+    // Feature grid buttons
+    document.addEventListener('click', (e) => {
+        const navBtn = e.target.closest('[data-nav]');
+        if (navBtn) {
+            triggerHaptic('light');
+            navigateTo(navBtn.dataset.nav);
+        }
+    });
+
+    // Settings button
+    $('#settings-btn')?.addEventListener('click', () => {
+        triggerHaptic('medium');
+        openModal(createSettingsForm());
+    });
+
+    // Slideshow button
+    $('#slideshow-btn')?.addEventListener('click', () => {
+        triggerHaptic('medium');
+        startMemorySlideshow();
+    });
+
+    // Miss You button
+    $('#miss-you-btn')?.addEventListener('click', async () => {
+        triggerHaptic('success');
+        triggerLoveBurstAnim();
+        const partner = DataStore.getPartner(currentUser);
+        await DataStore.add('missyou', {
+            from: currentUser,
+            to: partner
+        });
+        toast('تصيفطات "توحشتك" 💕');
+    });
+
+    // Logout
+    $('#logout-btn')?.addEventListener('click', () => {
+        triggerHaptic('medium');
+        DataStore.clearUser();
+        currentUser = null;
+        updateThemeColor(null);
+        navigateTo('login');
+        // Reset login UI
+        $('#login-select').hidden = false;
+        $('#login-code').hidden = true;
+    });
+
+    // FAB buttons
+    $('#fab-letter')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createLetterForm()); });
+    $('#fab-memory')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createMemoryForm()); });
+    $('#fab-timeline')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createTimelineForm()); });
+    $('#fab-countdown')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createCountdownForm()); });
+    $('#fab-bucket')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createBucketForm()); });
+    $('#fab-lovenote')?.addEventListener('click', () => { triggerHaptic('light'); openModal(createLoveNoteForm()); });
+
+    // Modal close
+    $('#modal-close')?.addEventListener('click', closeModal);
+    $('#modal-overlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+    });
+
+    // Modal drag down to dismiss gesture on mobile
+    const modalCard = $('#modal-card');
+    let touchStartY = 0, touchCurrentY = 0;
+    modalCard?.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+        touchCurrentY = touchStartY;
+    }, { passive: true });
+    modalCard?.addEventListener('touchmove', (e) => {
+        touchCurrentY = e.touches[0].clientY;
+        const diff = touchCurrentY - touchStartY;
+        if (diff > 0 && modalCard.scrollTop <= 0) {
+            modalCard.style.transform = `translateY(${diff}px)`;
+        }
+    }, { passive: true });
+    modalCard?.addEventListener('touchend', () => {
+        const diff = touchCurrentY - touchStartY;
+        if (diff > 70 && modalCard.scrollTop <= 0) {
+            triggerHaptic('medium');
+            closeModal();
+        }
+        modalCard.style.transform = '';
+        touchStartY = 0;
+        touchCurrentY = 0;
+    });
+
+    // Lightbox close
+    $('#lightbox-close')?.addEventListener('click', () => {
+        $('#lightbox').hidden = true;
+    });
+    $('#lightbox')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) $('#lightbox').hidden = true;
+    });
+}
+
+// ===================================================================
+// LOGIN
+// ===================================================================
+function setupLogin() {
+    // User selection
+    $$('.login-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            triggerHaptic('medium');
+            selectedLoginUser = btn.dataset.user;
+            const name = selectedLoginUser === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+            $('#login-code-prompt').textContent = `مرحبا ${name} — دخل الكود ديالك`;
+            $('#login-select').hidden = true;
+            $('#login-code').hidden = false;
+            passcodeBuffer = '';
+            updatePasscodeDots();
+            $('#login-error').textContent = '';
+        });
+    });
+
+    // Back button
+    $('#login-back')?.addEventListener('click', () => {
+        triggerHaptic('light');
+        $('#login-select').hidden = false;
+        $('#login-code').hidden = true;
+        selectedLoginUser = null;
+        passcodeBuffer = '';
+    });
+
+    // Keypad
+    $$('.key-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            triggerHaptic('light');
+            const key = btn.dataset.key;
+            if (key === 'clear') {
+                passcodeBuffer = passcodeBuffer.slice(0, -1);
+            } else if (key === 'enter') {
+                verifyPasscode();
+                return;
+            } else if (passcodeBuffer.length < 4) {
+                passcodeBuffer += key;
+            }
+            updatePasscodeDots();
+            $('#login-error').textContent = '';
+
+            // Auto-submit on 4 digits
+            if (passcodeBuffer.length === 4) {
+                setTimeout(verifyPasscode, 200);
+            }
+        });
+    });
+}
+
+function updatePasscodeDots() {
+    const dots = $$('#passcode-dots span');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < passcodeBuffer.length);
+    });
+    $('#passcode-dots').classList.remove('error');
+}
+
+function verifyPasscode() {
+    const codes = DataStore.getPasscodes();
+    if (passcodeBuffer === codes[selectedLoginUser]) {
+        // Success
+        triggerHaptic('success');
+        currentUser = selectedLoginUser;
+        DataStore.setUser(currentUser);
+        updateThemeColor(currentUser);
+        navigateTo('dashboard');
+    } else {
+        // Error
+        triggerHaptic('error');
+        $('#passcode-dots').classList.add('error');
+        $('#login-error').textContent = 'الكود ماشي صحيح ❌';
+        setTimeout(() => {
+            passcodeBuffer = '';
+            updatePasscodeDots();
+        }, 500);
+    }
+}
+
+// ===================================================================
+// DASHBOARD
+// ===================================================================
+function loadDashboard() {
+    const partner = DataStore.getPartner(currentUser);
+    const isAli = currentUser === 'ali';
+    const name = isAli ? 'علي' : 'فاطمة';
+    const partnerName = isAli ? 'فاطمة' : 'علي';
+    const cssClass = isAli ? 'user-ali' : 'user-fatima';
+
+    // Greeting
+    $('#dash-hello').innerHTML = `مرحبا <span class="${cssClass}">${name}</span> 💕`;
+
+    // Days counter
+    const diff = Date.now() - ANNIVERSARY.getTime();
+    const days = Math.floor(diff / 86400000);
+    $('#dash-days').textContent = `${days} يوم ديال الحب مع بعضياتنا 💕`;
+
+    // Partner mood
+    $('#dash-partner-name').textContent = `${partnerName} حاس/حاسة بـ`;
+    DataStore.getTodayMood(partner).then(mood => {
+        if (mood) {
+            $('#dash-partner-mood').textContent = mood.emoji;
+            $('#dash-partner-status').textContent = 'اليوم';
+        } else {
+            $('#dash-partner-mood').textContent = '🤍';
+            $('#dash-partner-status').textContent = 'ما تشيكا بعد';
+        }
+    });
+
+    // Love note
+    const quote = DataStore.getRandomQuote();
+    $('#dash-note-text').textContent = quote;
+    $('#dash-note-from').textContent = '';
+
+    // Unread letters badge
+    DataStore.getAll('letters').then(letters => {
+        const unread = letters.filter(l => l.to === currentUser && !l.read).length;
+        const badge = $('#unread-badge');
+        if (unread > 0) {
+            badge.hidden = false;
+            badge.textContent = unread;
+        } else {
+            badge.hidden = true;
+        }
+    });
+
+    // Recent Miss You check
+    DataStore.getAll('missyou').then(pings => {
+        const latest = pings.find(p => p.to === currentUser);
+        if (latest && (Date.now() - latest.createdAt) < 7200000) { // within 2 hours
+            toast(`${partnerName} توحشاتك/توحشك مؤخراً! 💕`);
+        }
+    });
+}
+
+// ===================================================================
+// LETTERS
+// ===================================================================
+async function loadLetters() {
+    const container = $('#letters-list');
+    const letters = await DataStore.getAll('letters');
+
+    if (letters.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-emoji">💌</span>
+                <p class="empty-state-text">ما كاين حتى رسالة بعد<br>كتب أول رسالة حب!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = letters.map(l => {
+        const isUnread = l.to === currentUser && !l.read;
+        const fromName = l.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+        const date = new Date(l.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
+        return `
+            <div class="letter-item glass ${isUnread ? 'unread' : ''}" data-letter-id="${l.id}">
+                <div class="letter-item-header">
+                    <span class="letter-item-from">${fromName}</span>
+                    <span class="letter-item-date">${date}</span>
+                </div>
+                <p class="letter-item-preview">${l.content}</p>
+            </div>`;
+    }).join('');
+
+    // Click to read
+    container.querySelectorAll('.letter-item').forEach(el => {
+        el.addEventListener('click', () => openLetter(el.dataset.letterId));
+    });
+}
+
+async function openLetter(id) {
+    const letters = await DataStore.getAll('letters');
+    const letter = letters.find(l => l.id === id);
+    if (!letter) return;
+
+    // Mark as read
+    if (letter.to === currentUser && !letter.read) {
+        await DataStore.update('letters', id, { read: true });
+    }
+
+    const fromName = letter.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+    const date = new Date(letter.createdAt).toLocaleDateString('ar-MA', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    openModal(`
+        <h3 class="modal-title">💌</h3>
+        <p class="letter-detail-from">من ${fromName}</p>
+        <p class="letter-detail-date">${date}</p>
+        <p class="letter-detail-body">${letter.content}</p>
+        <button class="delete-btn" id="delete-letter-${id}">حذف الرسالة</button>
+    `);
+
+    $(`#delete-letter-${id}`)?.addEventListener('click', async () => {
+        await DataStore.remove('letters', id);
+        closeModal();
+        loadLetters();
+        toast('تمسحات الرسالة 🗑️');
+    });
+}
+
+function createLetterForm() {
+    const partner = DataStore.getPartner(currentUser);
+    const partnerName = partner === 'ali' ? 'علي' : 'فاطمة';
+    return `
+        <h3 class="modal-title">كتب رسالة لـ ${partnerName} 💌</h3>
+        <div class="form-group">
+            <textarea class="form-textarea" id="letter-content" placeholder="اكتب من قلبك..." rows="6"></textarea>
+        </div>
+        <button class="form-submit" id="send-letter">إرسال 💕</button>
+    `;
+}
+
+// ===================================================================
+// MEMORIES
+// ===================================================================
+async function loadMemories() {
+    const container = $('#memories-grid');
+    const memories = await DataStore.getAll('memories');
+
+    if (memories.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1">
+                <span class="empty-state-emoji">📸</span>
+                <p class="empty-state-text">ما كاين حتى ذكرى بعد<br>زيد أول صورة!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = memories.map(m => `
+        <div class="memory-card" data-memory-id="${m.id}">
+            <img src="${m.image}" alt="${m.caption || 'Memory'}" loading="lazy" />
+            <div class="memory-card-overlay">
+                <p class="memory-card-caption">${m.caption || ''}</p>
+                <p class="memory-card-date">${m.date || ''}</p>
+            </div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.memory-card').forEach(el => {
+        el.addEventListener('click', () => openLightbox(el.dataset.memoryId));
+    });
+}
+
+function openLightbox(id) {
+    DataStore.getAll('memories').then(memories => {
+        const m = memories.find(x => x.id === id);
+        if (!m) return;
+        $('#lightbox-img').src = m.image;
+        $('#lightbox-caption').textContent = m.caption || '';
+        $('#lightbox').hidden = false;
+    });
+}
+
+function createMemoryForm() {
+    return `
+        <h3 class="modal-title">زيد ذكرى 📸</h3>
+        <div class="form-group">
+            <input type="file" accept="image/*" class="form-file" id="memory-file" />
+            <label for="memory-file" class="form-file-label" id="memory-file-label">
+                📷 اختار صورة
+            </label>
+            <img class="form-file-preview" id="memory-preview" />
+        </div>
+        <div class="form-group">
+            <input class="form-input" id="memory-caption" placeholder="شنو كان فهاد اللحظة؟" />
+        </div>
+        <div class="form-group">
+            <input class="form-input" type="date" id="memory-date" />
+        </div>
+        <button class="form-submit" id="save-memory">حفظ 💕</button>
+    `;
+}
+
+// ===================================================================
+// TIMELINE
+// ===================================================================
+async function loadTimeline() {
+    const container = $('#timeline-list');
+    const items = await DataStore.getAll('timeline');
+
+    // Sort by createdAt ascending for timeline
+    items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-emoji">📅</span>
+                <p class="empty-state-text">ابدا القصة ديالكم!<br>زيد أول لحظة مميزة</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(item => `
+        <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-card glass">
+                <h3>${item.title}</h3>
+                <p>${item.description}</p>
+                ${item.date ? `<p class="tl-card-date">${item.date}</p>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function createTimelineForm() {
+    return `
+        <h3 class="modal-title">زيد لحظة مميزة 📅</h3>
+        <div class="form-group">
+            <input class="form-input" id="tl-title" placeholder="عنوان اللحظة" />
+        </div>
+        <div class="form-group">
+            <textarea class="form-textarea" id="tl-desc" placeholder="شنو وقع؟" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">التاريخ (اختياري)</label>
+            <input class="form-input" type="date" id="tl-date" />
+        </div>
+        <button class="form-submit" id="save-timeline">حفظ 💕</button>
+    `;
+}
+
+// ===================================================================
+// COUNTDOWN
+// ===================================================================
+function loadCountdown() {
+    const container = $('#countdown-content');
+
+    // Main "days together" counter
+    const diff = Date.now() - ANNIVERSARY.getTime();
+    const totalSec = Math.floor(diff / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+
+    DataStore.getAll('countdowns').then(countdowns => {
+        const upcoming = countdowns.filter(c => c.type === 'until');
+
+        container.innerHTML = `
+            <div class="cd-main glass">
+                <p class="cd-main-title">حنا مع بعضياتنا 💕</p>
+                <div class="cd-grid">
+                    <div class="cd-unit">
+                        <span class="cd-number" id="cd-days">${days}</span>
+                        <span class="cd-label">يوم</span>
+                    </div>
+                    <div class="cd-unit">
+                        <span class="cd-number" id="cd-hours">${String(hours).padStart(2, '0')}</span>
+                        <span class="cd-label">ساعة</span>
+                    </div>
+                    <div class="cd-unit">
+                        <span class="cd-number" id="cd-min">${String(minutes).padStart(2, '0')}</span>
+                        <span class="cd-label">دقيقة</span>
+                    </div>
+                    <div class="cd-unit">
+                        <span class="cd-number" id="cd-sec">${String(seconds).padStart(2, '0')}</span>
+                        <span class="cd-label">ثانية</span>
+                    </div>
+                </div>
+                <p class="cd-sub">…و مازال كاين بزاف 💕</p>
+            </div>
+
+            ${upcoming.length > 0 ? `
+                <p class="cd-upcoming-title">📆 التواريخ الجاية</p>
+                ${upcoming.map(c => {
+                    const target = new Date(c.date);
+                    const daysLeft = Math.ceil((target - Date.now()) / 86400000);
+                    return `
+                        <div class="cd-item glass">
+                            <span class="cd-item-days">${daysLeft > 0 ? daysLeft : '🎉'}</span>
+                            <div class="cd-item-info">
+                                <h4>${c.title}</h4>
+                                <p>${daysLeft > 0 ? `باقي ${daysLeft} يوم` : 'اليوم! 🎉'}</p>
+                            </div>
+                        </div>`;
+                }).join('')}
+            ` : ''}
+        `;
+
+        // Live ticker
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            const now = Date.now();
+            const d = now - ANNIVERSARY.getTime();
+            const ts = Math.floor(d / 1000);
+            const el = (id) => document.getElementById(id);
+            if (el('cd-days')) el('cd-days').textContent = Math.floor(ts / 86400);
+            if (el('cd-hours')) el('cd-hours').textContent = String(Math.floor((ts % 86400) / 3600)).padStart(2, '0');
+            if (el('cd-min')) el('cd-min').textContent = String(Math.floor((ts % 3600) / 60)).padStart(2, '0');
+            if (el('cd-sec')) el('cd-sec').textContent = String(ts % 60).padStart(2, '0');
+        }, 1000);
+    });
+}
+
+function createCountdownForm() {
+    return `
+        <h3 class="modal-title">زيد تاريخ مميز 📆</h3>
+        <div class="form-group">
+            <input class="form-input" id="cd-title" placeholder="شنو المناسبة؟" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">التاريخ</label>
+            <input class="form-input" type="date" id="cd-date" />
+        </div>
+        <button class="form-submit" id="save-countdown">حفظ 💕</button>
+    `;
+}
+
+// ===================================================================
+// MOOD
+// ===================================================================
+async function loadMood() {
+    const container = $('#mood-content');
+    const partner = DataStore.getPartner(currentUser);
+    const partnerName = partner === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+
+    const todayMood = await DataStore.getTodayMood(currentUser);
+    const partnerMood = await DataStore.getTodayMood(partner);
+    const myHistory = await DataStore.getMoods(currentUser);
+
+    const moods = [
+        { emoji: '🥰', label: 'حب' },
+        { emoji: '😊', label: 'فرحان' },
+        { emoji: '😴', label: 'نعسان' },
+        { emoji: '😢', label: 'حزين' },
+        { emoji: '😤', label: 'مقلق' },
+        { emoji: '🤒', label: 'مريض' },
+        { emoji: '😍', label: 'مشتاق' },
+        { emoji: '🥳', label: 'محتفل' },
+        { emoji: '😌', label: 'مرتاح' },
+        { emoji: '💪', label: 'قوي' },
+    ];
+
+    container.innerHTML = `
+        <p class="mood-section-title">كيف حاس/حاسة اليوم؟</p>
+        <div class="mood-grid">
+            ${moods.map(m => `
+                <button class="mood-btn ${todayMood?.emoji === m.emoji ? 'selected' : ''}" data-mood="${m.emoji}">
+                    <span>${m.emoji}</span>
+                    <span>${m.label}</span>
+                </button>
+            `).join('')}
+        </div>
+
+        <p class="mood-section-title">${partnerName} اليوم</p>
+        <div class="mood-partner-card glass">
+            <span class="partner-emoji">${partnerMood?.emoji || '🤍'}</span>
+            <div class="partner-info">
+                <p>${partnerName}</p>
+                <p>${partnerMood ? 'تشيكا اليوم' : 'ما تشيكا بعد'}</p>
+            </div>
+        </div>
+
+        ${myHistory.length > 0 ? `
+            <p class="mood-section-title">الأيام اللي فاتو</p>
+            <div class="mood-history">
+                ${myHistory.slice(0, 7).map(m => {
+                    const d = new Date(m.date);
+                    const dayName = d.toLocaleDateString('ar-MA', { weekday: 'short' });
+                    return `
+                        <div class="mood-day">
+                            <span class="mood-day-emoji">${m.emoji}</span>
+                            <span class="mood-day-label">${dayName}</span>
+                        </div>`;
+                }).join('')}
+            </div>
+        ` : ''}
+    `;
+
+    // Mood selection
+    container.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const emoji = btn.dataset.mood;
+            await DataStore.setMood(currentUser, emoji);
+            toast(`${emoji} تشيكيتي!`);
+            container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+}
+
+// ===================================================================
+// BUCKET LIST
+// ===================================================================
+async function loadBucketList() {
+    const container = $('#bucketlist-content');
+    const items = await DataStore.getAll('bucketlist');
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-emoji">📝</span>
+                <p class="empty-state-text">ما كاين حتى هدف بعد<br>زيدو أحلامكم مع بعض!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(item => {
+        const by = item.addedBy === 'ali' ? 'علي' : 'فاطمة';
+        return `
+            <div class="bucket-item glass ${item.completed ? 'done' : ''}" data-bucket-id="${item.id}">
+                <span class="bucket-check">✓</span>
+                <span class="bucket-text">${item.title}</span>
+                <span class="bucket-by">${by}</span>
+            </div>`;
+    }).join('');
+
+    container.querySelectorAll('.bucket-item').forEach(el => {
+        el.addEventListener('click', async () => {
+            const id = el.dataset.bucketId;
+            const items = await DataStore.getAll('bucketlist');
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            const newStatus = !item.completed;
+            await DataStore.update('bucketlist', id, { completed: newStatus });
+            if (newStatus) {
+                triggerHaptic('success');
+                triggerConfetti();
+            } else {
+                triggerHaptic('light');
+            }
+            loadBucketList();
+            toast(newStatus ? 'تحققت! 🎉' : 'رجعناها للقائمة');
+        });
+    });
+}
+
+function triggerConfetti() {
+    const colors = ['#fd79a8', '#e84393', '#f9ca24', '#fab1a0', '#a29bfe', '#ffffff'];
+    for (let i = 0; i < 40; i++) {
+        const p = document.createElement('span');
+        p.className = 'confetti-particle';
+        p.style.left = (Math.random() * 100) + 'vw';
+        p.style.top = '-10px';
+        p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        p.style.width = p.style.height = (6 + Math.random() * 8) + 'px';
+        p.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        document.body.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+    }
+}
+
+let slideshowInterval = null;
+function startMemorySlideshow() {
+    DataStore.getAll('memories').then(memories => {
+        if (memories.length === 0) {
+            toast('زيد ذكريات أولا باش تشوفهم 📸');
+            return;
+        }
+        let idx = 0;
+        const showSlide = (i) => {
+            const m = memories[i];
+            $('#lightbox-img').src = m.image;
+            $('#lightbox-caption').textContent = `${m.caption || ''} (${i + 1}/${memories.length})`;
+            $('#lightbox').hidden = false;
+        };
+        showSlide(idx);
+        if (slideshowInterval) clearInterval(slideshowInterval);
+        slideshowInterval = setInterval(() => {
+            idx = (idx + 1) % memories.length;
+            showSlide(idx);
+        }, 3500);
+
+        const closeBtn = $('#lightbox-close');
+        const origClose = closeBtn.onclick;
+        closeBtn.onclick = () => {
+            if (slideshowInterval) clearInterval(slideshowInterval);
+            $('#lightbox').hidden = true;
+            if (origClose) origClose();
+        };
+    });
+}
+
+function createBucketForm() {
+    return `
+        <h3 class="modal-title">زيد هدف / حلم 📝</h3>
+        <div class="form-group">
+            <input class="form-input" id="bucket-title" placeholder="شنو بغيتو تديرو مع بعض؟" />
+        </div>
+        <button class="form-submit" id="save-bucket">زيد 💕</button>
+    `;
+}
+
+// ===================================================================
+// LOVE NOTES
+// ===================================================================
+async function loadLoveNotes() {
+    const container = $('#lovenotes-content');
+    const notes = await DataStore.getAll('lovenotes');
+
+    const allNotes = [...notes];
+
+    if (allNotes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-emoji">💕</span>
+                <p class="empty-state-text">كتب كلام حلو لصاحبك/صاحبتك!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = allNotes.map(n => {
+        const from = n.from === 'ali' ? 'علي 💙' : 'فاطمة 💗';
+        const date = new Date(n.createdAt).toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
+        return `
+            <div class="lovenote-item glass">
+                <p class="lovenote-text">${n.content}</p>
+                <p class="lovenote-meta">من ${from} · ${date}</p>
+            </div>`;
+    }).join('');
+}
+
+function createLoveNoteForm() {
+    return `
+        <h3 class="modal-title">كتب كلام حلو 💕</h3>
+        <div class="form-group">
+            <textarea class="form-textarea" id="lovenote-content" placeholder="كلام من القلب..." rows="4"></textarea>
+        </div>
+        <button class="form-submit" id="save-lovenote">إرسال 💕</button>
+    `;
+}
+
+function createSettingsForm() {
+    const isAli = currentUser === 'ali';
+    const currentCode = DataStore.getPasscodes()[currentUser] || '1111';
+    return `
+        <h3 class="modal-title">الإعدادات ⚙️</h3>
+        <div class="form-group">
+            <label class="form-label">تبديل كود الدخول (${isAli ? 'علي 💙' : 'فاطمة 💗'})</label>
+            <input class="form-input" id="setting-passcode" type="password" maxlength="4" placeholder="4 أرقام" value="${currentCode}" style="text-align:center;letter-spacing:4px;font-size:1.2rem;" />
+        </div>
+        <button class="form-submit" id="save-passcode">حفظ الكود 💕</button>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:1.5rem 0 1rem;" />
+
+        <div class="form-group">
+            <label class="form-label">🔥 ربط Firebase (للمزامنة الفورية بين الهواتف)</label>
+            <input class="form-input" id="setting-apikey" placeholder="API Key" value="${FIREBASE_CONFIG.apiKey || ''}" />
+        </div>
+        <div class="form-group">
+            <input class="form-input" id="setting-projectid" placeholder="Project ID" value="${FIREBASE_CONFIG.projectId || ''}" />
+        </div>
+        <button class="form-submit" id="save-firebase" style="background:linear-gradient(135deg, #6c5ce7, #a29bfe)">حفظ إعدادات Firebase 🔥</button>
+    `;
+}
+
+// ===================================================================
+// MODAL
+// ===================================================================
+function openModal(html) {
+    const body = $('#modal-body');
+    body.innerHTML = typeof html === 'string' ? html : '';
+    $('#modal-overlay').hidden = false;
+
+    // Attach form handlers after rendering
+    setTimeout(attachFormHandlers, 50);
+}
+
+function closeModal() {
+    $('#modal-overlay').hidden = true;
+    $('#modal-body').innerHTML = '';
+}
+
+function attachFormHandlers() {
+    // Send letter
+    $('#send-letter')?.addEventListener('click', async () => {
+        const content = $('#letter-content')?.value.trim();
+        if (!content) return;
+        const partner = DataStore.getPartner(currentUser);
+        await DataStore.add('letters', {
+            content,
+            from: currentUser,
+            to: partner,
+            read: false,
+        });
+        closeModal();
+        loadLetters();
+        toast('تصيفطات الرسالة 💌');
+    });
+
+    // Save memory
+    const fileInput = $('#memory-file');
+    const preview = $('#memory-preview');
+    const fileLabel = $('#memory-file-label');
+    let memoryImageData = null;
+
+    fileInput?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        memoryImageData = await DataStore.compressImage(file);
+        preview.src = memoryImageData;
+        preview.style.display = 'block';
+        fileLabel.textContent = '✅ تبدلات الصورة';
+    });
+
+    $('#save-memory')?.addEventListener('click', async () => {
+        if (!memoryImageData) {
+            toast('اختار صورة أولا 📷');
+            return;
+        }
+        await DataStore.add('memories', {
+            image: memoryImageData,
+            caption: $('#memory-caption')?.value.trim() || '',
+            date: $('#memory-date')?.value || '',
+            uploadedBy: currentUser,
+        });
+        closeModal();
+        loadMemories();
+        toast('تزادت الذكرى 📸');
+    });
+
+    // Save timeline
+    $('#save-timeline')?.addEventListener('click', async () => {
+        const title = $('#tl-title')?.value.trim();
+        const desc = $('#tl-desc')?.value.trim();
+        if (!title) return;
+        await DataStore.add('timeline', {
+            title,
+            description: desc || '',
+            date: $('#tl-date')?.value || '',
+            addedBy: currentUser,
+        });
+        closeModal();
+        loadTimeline();
+        toast('تزادت اللحظة 📅');
+    });
+
+    // Save countdown
+    $('#save-countdown')?.addEventListener('click', async () => {
+        const title = $('#cd-title')?.value.trim();
+        const date = $('#cd-date')?.value;
+        if (!title || !date) return;
+        await DataStore.add('countdowns', {
+            title,
+            date: date + 'T00:00:00',
+            type: 'until',
+            addedBy: currentUser,
+        });
+        closeModal();
+        loadCountdown();
+        toast('تزاد التاريخ 📆');
+    });
+
+    // Save bucket item
+    $('#save-bucket')?.addEventListener('click', async () => {
+        const title = $('#bucket-title')?.value.trim();
+        if (!title) return;
+        await DataStore.add('bucketlist', {
+            title,
+            completed: false,
+            addedBy: currentUser,
+        });
+        closeModal();
+        loadBucketList();
+        toast('تزاد الحلم 📝');
+    });
+
+    // Save love note
+    $('#save-lovenote')?.addEventListener('click', async () => {
+        const content = $('#lovenote-content')?.value.trim();
+        if (!content) return;
+        const partner = DataStore.getPartner(currentUser);
+        await DataStore.add('lovenotes', {
+            content,
+            from: currentUser,
+            to: partner,
+        });
+        closeModal();
+        loadLoveNotes();
+        toast('تصيفط الكلام الحلو 💕');
+    });
+
+    // Save passcode
+    $('#save-passcode')?.addEventListener('click', () => {
+        const code = $('#setting-passcode')?.value.trim();
+        if (code && code.length === 4) {
+            const passcodes = DataStore.getPasscodes();
+            passcodes[currentUser] = code;
+            localStorage.setItem('fatimti_passcodes', JSON.stringify(passcodes));
+            triggerHaptic('success');
+            closeModal();
+            toast('تبدل الكود بنجاح 🔒');
+        } else {
+            toast('الكود خاصو يكون من 4 أرقام!');
+        }
+    });
+
+    // Save Firebase keys
+    $('#save-firebase')?.addEventListener('click', () => {
+        const apiKey = $('#setting-apikey')?.value.trim();
+        const projectId = $('#setting-projectid')?.value.trim();
+        if (apiKey && projectId) {
+            const config = {
+                apiKey,
+                authDomain: `${projectId}.firebaseapp.com`,
+                projectId,
+                storageBucket: `${projectId}.appspot.com`,
+                messagingSenderId: "",
+                appId: ""
+            };
+            localStorage.setItem('fatimti_fb_config', JSON.stringify(config));
+            triggerHaptic('success');
+            closeModal();
+            toast('تحفظو إعدادات Firebase 🔥 — كليكي رافرشي الصفحة');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            toast('عمر المعطيات أولا!');
+        }
+    });
+}
+
+// ===================================================================
+// TOAST
+// ===================================================================
+function toast(message) {
+    const t = $('#toast');
+    t.textContent = message;
+    t.hidden = false;
+    t.classList.add('show');
+    setTimeout(() => {
+        t.classList.remove('show');
+        setTimeout(() => { t.hidden = true; }, 300);
+    }, 2200);
+}
+
+// ===================================================================
+// HEARTS CANVAS
+// ===================================================================
+function initHeartsCanvas() {
+    const canvas = document.getElementById('hearts-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    const hearts = [];
+    const HEART_COUNT = 30;
+
+    function resize() {
+        W = canvas.width = canvas.offsetWidth;
+        H = canvas.height = canvas.offsetHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function createHeart() {
+        return {
+            x: Math.random() * W,
+            y: H + 20 + Math.random() * 40,
+            size: 8 + Math.random() * 14,
+            speed: 0.3 + Math.random() * 0.6,
+            opacity: 0.12 + Math.random() * 0.3,
+            drift: (Math.random() - 0.5) * 0.3,
+            wobbleAmp: 15 + Math.random() * 20,
+            wobbleFreq: 0.008 + Math.random() * 0.01,
+            tick: Math.random() * 1000,
+        };
+    }
+
+    for (let i = 0; i < HEART_COUNT; i++) {
+        const h = createHeart();
+        h.y = Math.random() * H;
+        hearts.push(h);
+    }
+
+    function drawHeart(cx, cy, size, opacity) {
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = '#e84393';
+        ctx.beginPath();
+        const tc = size * 0.3;
+        ctx.moveTo(cx, cy + size * 0.35);
+        ctx.bezierCurveTo(cx, cy, cx - size / 2, cy, cx - size / 2, cy + tc);
+        ctx.bezierCurveTo(cx - size / 2, cy + (size + tc) / 2, cx, cy + (size + tc) / 1.4, cx, cy + size);
+        ctx.bezierCurveTo(cx, cy + (size + tc) / 1.4, cx + size / 2, cy + (size + tc) / 2, cx + size / 2, cy + tc);
+        ctx.bezierCurveTo(cx + size / 2, cy, cx, cy, cx, cy + size * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, W, H);
+        hearts.forEach((h, i) => {
+            h.tick++;
+            h.y -= h.speed;
+            h.x += h.drift + Math.sin(h.tick * h.wobbleFreq) * 0.3;
+            if (h.y < -30) hearts[i] = createHeart();
+            drawHeart(h.x, h.y, h.size, h.opacity);
+        });
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+// ===================================================================
+// LOVE BURST BUTTON
+// ===================================================================
+function triggerLoveBurstAnim(x, y) {
+    const emojis = ['💖', '💕', '💗', '💓', '🌹', '✨', '🦋', '🤍', '💘', '💝'];
+    const cx = x !== undefined ? x : window.innerWidth / 2;
+    const cy = y !== undefined ? y : window.innerHeight / 2;
+    for (let i = 0; i < 10; i++) {
+        const span = document.createElement('span');
+        span.className = 'burst-emoji';
+        span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        span.style.left = (cx + (Math.random() - 0.5) * 120) + 'px';
+        span.style.top = (cy - Math.random() * 30) + 'px';
+        span.style.animationDuration = (1 + Math.random() * 0.8) + 's';
+        document.body.appendChild(span);
+        span.addEventListener('animationend', () => span.remove());
+    }
+}
+
+function setupLoveBurst() {
+    const btn = document.getElementById('love-burst-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        const rect = btn.getBoundingClientRect();
+        triggerLoveBurstAnim(rect.left + rect.width / 2, rect.top);
+    });
+}
+
+// ===================================================================
+// SPARKLE
+// ===================================================================
+function setupSparkle() {
+    let last = 0;
+    function sparkle(x, y) {
+        const now = Date.now();
+        if (now - last < 80) return;
+        last = now;
+        const s = document.createElement('span');
+        s.className = 'sparkle';
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+        s.style.width = s.style.height = (4 + Math.random() * 5) + 'px';
+        s.style.background = Math.random() > 0.5 ? '#f9ca24' : '#fd79a8';
+        document.body.appendChild(s);
+        s.addEventListener('animationend', () => s.remove());
+    }
+    document.addEventListener('mousemove', (e) => sparkle(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        sparkle(t.clientX, t.clientY);
+    }, { passive: true });
+}
+
+// ===================================================================
+// MUSIC (YouTube)
+// ===================================================================
+function setupMusic() {
+    const btn = document.getElementById('music-btn');
+    if (!btn) return;
+
+    let playing = false;
+    let player = null;
+    let playerReady = false;
+
+    function markPlaying() {
+        playing = true;
+        btn.classList.add('playing');
+    }
+
+    window.onYouTubeIframeAPIReady = function () {
+        player = new YT.Player('yt-player', {
+            videoId: 'HLEZYcpoIN4',
+            playerVars: {
+                autoplay: 1,
+                loop: 1,
+                playlist: 'HLEZYcpoIN4',
+                controls: 0,
+                disablekb: 1,
+                fs: 0,
+                modestbranding: 1,
+                rel: 0,
+            },
+            events: {
+                onReady: function () {
+                    playerReady = true;
+                    player.setVolume(35);
+                    player.playVideo();
+                    markPlaying();
+                },
+                onStateChange: function (e) {
+                    if (e.data === YT.PlayerState.PLAYING && !playing) markPlaying();
+                    if (e.data === YT.PlayerState.ENDED) player.playVideo();
+                },
+            },
+        });
+    };
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!playerReady || !player) return;
+        if (playing) {
+            player.pauseVideo();
+            btn.classList.remove('playing');
+            playing = false;
+        } else {
+            player.playVideo();
+            markPlaying();
+        }
+    });
+}

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>فاطمتي 💕 — الحب ديالنا</title>
+    <meta name="description" content="فاطمتي — مكان الحب ديالنا. رسائل، ذكريات، و كلام حلو بين علي و فاطمة." />
+    <meta name="theme-color" content="#1a0a1e" />
+
+    <!-- PWA / Mobile -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="فاطمتي" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="manifest.json" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&family=Dancing+Script:wght@400;700&family=Noto+Sans+Arabic:wght@300;400;500;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ===================== LOGIN ===================== -->
+    <div id="view-login" class="view active">
+        <canvas id="hearts-canvas"></canvas>
+        <div class="login-container">
+            <div class="login-logo">
+                <div class="logo-hearts">
+                    <span class="logo-heart left">💙</span>
+                    <span class="logo-heart right">💗</span>
+                </div>
+                <h1 class="login-title">فاطمتي</h1>
+                <p class="login-subtitle">الحب ديالنا، مكان واحد</p>
+            </div>
+
+            <div id="login-select" class="login-select">
+                <p class="login-prompt">شكون نتا؟</p>
+                <div class="login-users">
+                    <button class="login-user-btn ali-btn" data-user="ali">
+                        <span class="user-avatar">👨</span>
+                        <span class="user-name">علي</span>
+                    </button>
+                    <button class="login-user-btn fatima-btn" data-user="fatima">
+                        <span class="user-avatar">👩</span>
+                        <span class="user-name">فاطمة</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="login-code" class="login-code" hidden>
+                <p id="login-code-prompt" class="login-prompt"></p>
+                <div class="passcode-dots" id="passcode-dots">
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="passcode-keypad">
+                    <button class="key-btn" data-key="1">1</button>
+                    <button class="key-btn" data-key="2">2</button>
+                    <button class="key-btn" data-key="3">3</button>
+                    <button class="key-btn" data-key="4">4</button>
+                    <button class="key-btn" data-key="5">5</button>
+                    <button class="key-btn" data-key="6">6</button>
+                    <button class="key-btn" data-key="7">7</button>
+                    <button class="key-btn" data-key="8">8</button>
+                    <button class="key-btn" data-key="9">9</button>
+                    <button class="key-btn key-fn" data-key="clear">⌫</button>
+                    <button class="key-btn" data-key="0">0</button>
+                    <button class="key-btn key-fn key-enter" data-key="enter">✓</button>
+                </div>
+                <p id="login-error" class="login-error"></p>
+                <button id="login-back" class="login-back-link">← رجوع</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div id="view-dashboard" class="view">
+        <div class="view-scroll">
+            <header class="dash-header">
+                <div>
+                    <h1 class="dash-hello" id="dash-hello"></h1>
+                    <p class="dash-days" id="dash-days"></p>
+                </div>
+                <div class="header-actions">
+                    <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
+                    <button id="logout-btn" class="icon-btn" aria-label="Logout">🚪</button>
+                </div>
+            </header>
+
+            <!-- Instant Miss You Button -->
+            <button id="miss-you-btn" class="miss-you-card glass">
+                <span class="miss-you-icon">💖</span>
+                <div class="miss-you-text">
+                    <p class="miss-you-title">توحشتك!</p>
+                    <p class="miss-you-sub">كليكي باش تصيفط/ي حب دابا</p>
+                </div>
+            </button>
+
+            <!-- Partner mood -->
+            <div class="dash-card partner-mood-card glass" id="dash-mood-card">
+                <span class="partner-mood-emoji" id="dash-partner-mood">🤍</span>
+                <div class="partner-mood-info">
+                    <p class="partner-mood-name" id="dash-partner-name"></p>
+                    <p class="partner-mood-status" id="dash-partner-status">ما تشيكا بعد</p>
+                </div>
+            </div>
+
+            <!-- Today's note -->
+            <div class="dash-card note-card glass" id="dash-note-card">
+                <p class="note-card-text" id="dash-note-text">💕</p>
+                <p class="note-card-from" id="dash-note-from"></p>
+            </div>
+
+            <!-- Feature grid -->
+            <div class="feature-grid">
+                <button class="feature-btn glass" data-nav="letters">
+                    <span class="feature-emoji">💌</span>
+                    <span class="feature-label">رسائل</span>
+                    <span class="feature-badge" id="unread-badge" hidden>0</span>
+                </button>
+                <button class="feature-btn glass" data-nav="memories">
+                    <span class="feature-emoji">📸</span>
+                    <span class="feature-label">ذكريات</span>
+                </button>
+                <button class="feature-btn glass" data-nav="timeline">
+                    <span class="feature-emoji">📅</span>
+                    <span class="feature-label">قصتنا</span>
+                </button>
+                <button class="feature-btn glass" data-nav="countdown">
+                    <span class="feature-emoji">⏳</span>
+                    <span class="feature-label">أيامنا</span>
+                </button>
+                <button class="feature-btn glass" data-nav="mood">
+                    <span class="feature-emoji">😊</span>
+                    <span class="feature-label">المزاج</span>
+                </button>
+                <button class="feature-btn glass" data-nav="bucketlist">
+                    <span class="feature-emoji">📝</span>
+                    <span class="feature-label">أحلامنا</span>
+                </button>
+                <button class="feature-btn glass" data-nav="lovenotes">
+                    <span class="feature-emoji">💕</span>
+                    <span class="feature-label">كلام حلو</span>
+                </button>
+                <button class="feature-btn glass" data-nav="ourstory">
+                    <span class="feature-emoji">🌹</span>
+                    <span class="feature-label">قصة الحب</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== LETTERS ===================== -->
+    <div id="view-letters" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>💌 رسائل الحب</h2>
+        </header>
+        <div class="view-scroll" id="letters-list"></div>
+        <button class="fab" id="fab-letter" aria-label="Write letter">✏️</button>
+    </div>
+
+    <!-- ===================== MEMORIES ===================== -->
+    <div id="view-memories" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>📸 ذكرياتنا</h2>
+            <button id="slideshow-btn" class="icon-btn" style="margin-right:auto;" aria-label="Play slideshow">🎬</button>
+        </header>
+        <div class="view-scroll">
+            <div class="memories-grid" id="memories-grid"></div>
+        </div>
+        <button class="fab" id="fab-memory" aria-label="Add memory">📷</button>
+    </div>
+
+    <!-- ===================== TIMELINE ===================== -->
+    <div id="view-timeline" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>📅 القصة ديالنا</h2>
+        </header>
+        <div class="view-scroll">
+            <div class="tl-line" id="timeline-list"></div>
+        </div>
+        <button class="fab" id="fab-timeline" aria-label="Add milestone">➕</button>
+    </div>
+
+    <!-- ===================== COUNTDOWN ===================== -->
+    <div id="view-countdown" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>⏳ أيامنا</h2>
+        </header>
+        <div class="view-scroll" id="countdown-content"></div>
+        <button class="fab" id="fab-countdown" aria-label="Add date">➕</button>
+    </div>
+
+    <!-- ===================== MOOD ===================== -->
+    <div id="view-mood" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>😊 كيف حالك اليوم؟</h2>
+        </header>
+        <div class="view-scroll" id="mood-content"></div>
+    </div>
+
+    <!-- ===================== BUCKET LIST ===================== -->
+    <div id="view-bucketlist" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>📝 أحلامنا</h2>
+        </header>
+        <div class="view-scroll" id="bucketlist-content"></div>
+        <button class="fab" id="fab-bucket" aria-label="Add goal">➕</button>
+    </div>
+
+    <!-- ===================== LOVE NOTES ===================== -->
+    <div id="view-lovenotes" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>💕 كلام حلو</h2>
+        </header>
+        <div class="view-scroll" id="lovenotes-content"></div>
+        <button class="fab" id="fab-lovenote" aria-label="Write note">✏️</button>
+    </div>
+
+    <!-- ===================== OUR STORY (original content) ===================== -->
+    <div id="view-ourstory" class="view">
+        <header class="view-header">
+            <button class="back-btn" data-nav="dashboard">→</button>
+            <h2>🌹 ليك أ فاطمة</h2>
+        </header>
+        <div class="view-scroll story-scroll">
+
+            <!-- Splash section -->
+            <section class="story-section story-splash">
+                <p class="splash-pre">هاد الشي درتو ليك…</p>
+                <div class="calligraphy-wrap">
+                    <svg class="calligraphy-svg" viewBox="0 0 500 120" aria-label="فاطمة">
+                        <defs>
+                            <linearGradient id="calliGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#fd79a8" />
+                                <stop offset="50%" stop-color="#fab1a0" />
+                                <stop offset="100%" stop-color="#f9ca24" />
+                            </linearGradient>
+                        </defs>
+                        <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
+                            class="calligraphy-text" fill="url(#calliGrad)">
+                            فاطمة
+                        </text>
+                    </svg>
+                    <div class="calligraphy-glow"></div>
+                </div>
+            </section>
+
+            <!-- Love letter -->
+            <section class="story-section">
+                <div class="story-letter glass">
+                    <p class="letter-date">22 يونيو 2026</p>
+                    <h3 class="letter-greeting">أ غزالتي فاطمة،</h3>
+                    <p class="letter-body">
+                        كل نهار معاك كيبان ليا بحال حلم ما بغيت نفيق منو.
+                        نتي الشمس ديالي و النجمة ديالي — نتي السبب اللي قلبي كيخفق.
+                    </p>
+                    <p class="letter-body">
+                        غير الضحكة ديالك كتنوّر ليا الدنيا كاملة، و صوتك هو أحلى موسيقى عندي.
+                        كل لحظة كنحبك كتر من اللي قبلها.
+                    </p>
+                    <p class="letter-sign">ديالك ديما و لأبد&ensp;♥</p>
+                </div>
+            </section>
+
+            <!-- Reasons -->
+            <section class="story-section">
+                <h3 class="story-heading">علاش كنحبك</h3>
+                <div class="story-reasons">
+                    <div class="story-reason glass">
+                        <span>✨</span>
+                        <p>الضحكة ديالك كتنوّر ليا الدنيا كاملة</p>
+                    </div>
+                    <div class="story-reason glass">
+                        <span>🌙</span>
+                        <p>كتخلّي كل لحظة عادية تولي سحرية</p>
+                    </div>
+                    <div class="story-reason glass">
+                        <span>🦋</span>
+                        <p>كل مرة كنشوفك كيطيرو ليا الفراشات</p>
+                    </div>
+                    <div class="story-reason glass">
+                        <span>🌹</span>
+                        <p>الطيبة ديالك كتلهمني نكون أحسن</p>
+                    </div>
+                    <div class="story-reason glass">
+                        <span>💫</span>
+                        <p>نتي صاحبتي و أكبر حب فحياتي</p>
+                    </div>
+                    <div class="story-reason glass">
+                        <span>🤍</span>
+                        <p>معاك، أخيراً لقيت الدار ديالي</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Promise -->
+            <section class="story-section story-promise">
+                <div class="big-heart">
+                    <svg viewBox="0 0 512 512" class="heart-svg">
+                        <path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z" />
+                    </svg>
+                </div>
+                <h3 class="promise-title">الوعد ديالي ليك</h3>
+                <p class="promise-text">
+                    كنوعدك نحبك فأحسن أيامك و نكون معاك فأصعبها.<br />
+                    كنوعدك نكون الهدوء ديالك فكل عاصفة، و الدفء ديالك فكل شتاء.<br />
+                    كنوعدك ما نوقف أبداً نختارك — اليوم، غدا، و للأبد.
+                </p>
+                <p class="promise-sign">— بكل الحب ديالي، لفاطمة 💗</p>
+            </section>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL ===================== -->
+    <div id="modal-overlay" class="modal-overlay" hidden>
+        <div class="modal-card glass" id="modal-card">
+            <button class="modal-close" id="modal-close">✕</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ===================== LIGHTBOX ===================== -->
+    <div id="lightbox" class="lightbox" hidden>
+        <button class="lightbox-close" id="lightbox-close">✕</button>
+        <img id="lightbox-img" src="" alt="Memory" />
+        <p class="lightbox-caption" id="lightbox-caption"></p>
+    </div>
+
+    <!-- ===================== TOAST ===================== -->
+    <div id="toast" class="toast" hidden></div>
+
+    <!-- ===================== FLOATING LOVE BUTTON ===================== -->
+    <button id="love-burst-btn" class="love-burst-btn" aria-label="Send love">💖</button>
+
+    <!-- Music toggle -->
+    <button id="music-btn" class="music-btn" aria-label="Toggle music">
+        <span class="music-icon">🎵</span>
+        <span class="music-bars">
+            <span></span><span></span><span></span>
+        </span>
+    </button>
+
+    <!-- Hidden YouTube player -->
+    <div id="yt-player"
+        style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"></div>
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- Main app -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
