@@ -381,11 +381,8 @@
         </span>
     </button>
 
-    <!-- YouTube player container (Positioned for iOS PWA WebKit compatibility) -->
-    <div id="yt-player-wrap" style="position:fixed;bottom:0;right:0;width:240px;height:180px;opacity:0.001;pointer-events:none;z-index:-100;overflow:hidden;">
-        <div id="yt-player"></div>
-    </div>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- Native Audio Player (100% compatible with iOS PWA & Offline) -->
+    <audio id="bg-audio" src="music.mp3" loop playsinline preload="auto"></audio>
 
     <!-- Main app -->
     <script src="firebase-config.js"></script>

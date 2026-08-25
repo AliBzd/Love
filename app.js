@@ -1722,29 +1722,31 @@ function setupSparkle() {
 }
 
 // ===================================================================
-// MUSIC (YouTube — Indila - Love Story)
+// BACKGROUND MUSIC (Native HTML5 Audio — 100% iOS PWA & Offline Support)
 // ===================================================================
-let _bgPlayer = null;
+let _bgAudio = null;
 let _bgPlaying = false;
-let _bgReady = false;
-let _pendingPlay = false;
 
 function startMusicOnUnlock() {
-    _pendingPlay = true;
-    if (_bgReady && _bgPlayer) {
-        try {
-            _bgPlayer.playVideo();
-            _bgPlaying = true;
-            $('#music-btn')?.classList.add('playing');
-        } catch (e) {
-            console.warn('Play error on unlock:', e);
+    if (!_bgAudio) _bgAudio = document.getElementById('bg-audio');
+    if (_bgAudio && !_bgPlaying) {
+        _bgAudio.volume = 0.45;
+        const p = _bgAudio.play();
+        if (p !== undefined) {
+            p.then(() => {
+                _bgPlaying = true;
+                $('#music-btn')?.classList.add('playing');
+            }).catch(e => console.warn('Audio play error:', e));
         }
     }
 }
 
 function setupMusic() {
     const btn = document.getElementById('music-btn');
-    if (!btn) return;
+    _bgAudio = document.getElementById('bg-audio');
+    if (!btn || !_bgAudio) return;
+
+    _bgAudio.volume = 0.45;
 
     function markPlaying() {
         _bgPlaying = true;
@@ -1756,54 +1758,13 @@ function setupMusic() {
         btn.classList.remove('playing');
     }
 
-    window.onYouTubeIframeAPIReady = function () {
-        _bgPlayer = new YT.Player('yt-player', {
-            videoId: 'DF3XjEhJ40Y',
-            playerVars: {
-                autoplay: 1,
-                playsinline: 1,
-                enablejsapi: 1,
-                origin: window.location.origin,
-                loop: 1,
-                playlist: 'DF3XjEhJ40Y',
-                controls: 0,
-                disablekb: 1,
-                fs: 0,
-                modestbranding: 1,
-                rel: 0,
-            },
-            events: {
-                onReady: function () {
-                    _bgReady = true;
-                    try {
-                        _bgPlayer.setVolume(45);
-                    } catch (e) {}
-                    if (_pendingPlay || currentUser) {
-                        try {
-                            _bgPlayer.playVideo();
-                            markPlaying();
-                        } catch (e) {}
-                    }
-                },
-                onStateChange: function (e) {
-                    if (e.data === YT.PlayerState.PLAYING) markPlaying();
-                    if (e.data === YT.PlayerState.PAUSED) markPaused();
-                    if (e.data === YT.PlayerState.ENDED && _bgPlayer) _bgPlayer.playVideo();
-                },
-                onError: function (err) {
-                    console.warn('YouTube Player Error:', err);
-                }
-            },
-        });
-    };
+    _bgAudio.addEventListener('play', markPlaying);
+    _bgAudio.addEventListener('pause', markPaused);
 
-    // User interaction audio unlocker for iOS PWA
+    // Touch interaction audio unlocker for iOS PWA
     const unlockAudioOnTouch = () => {
-        if (_bgReady && _bgPlayer && !_bgPlaying && currentUser) {
-            try {
-                _bgPlayer.playVideo();
-                markPlaying();
-            } catch (e) {}
+        if (_bgAudio && !_bgPlaying && currentUser) {
+            _bgAudio.play().then(markPlaying).catch(() => {});
         }
         document.removeEventListener('touchstart', unlockAudioOnTouch);
         document.removeEventListener('click', unlockAudioOnTouch);
@@ -1813,13 +1774,15 @@ function setupMusic() {
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!_bgPlayer) return;
+        if (!_bgAudio) return;
         if (_bgPlaying) {
-            _bgPlayer.pauseVideo();
+            _bgAudio.pause();
             markPaused();
         } else {
-            _bgPlayer.playVideo();
-            markPlaying();
+            _bgAudio.play().then(markPlaying).catch(err => {
+                console.warn('Audio play error:', err);
+                toast('Tap to play music 🎵');
+            });
         }
     });
 }
