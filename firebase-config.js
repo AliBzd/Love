@@ -146,7 +146,7 @@ function _lsSet(key, value) {
 
 // ───────── Initialize defaults if first run ─────────
 function _ensureDefaults() {
-    if (!_lsGet("initialized_en_v2")) {
+    if (!_lsGet("initialized_fresh_v1")) {
         _lsSet("passcodes", DEFAULT_PASSCODES);
         _lsSet("timeline", DEFAULT_TIMELINE);
         _lsSet("letters", []);
@@ -156,7 +156,12 @@ function _ensureDefaults() {
         _lsSet("moods_aya", []);
         _lsSet("bucketlist", []);
         _lsSet("lovenotes", []);
-        _lsSet("initialized_en_v2", true);
+        _lsSet("voicenotes", []);
+        _lsSet("daily_answers", []);
+        _lsSet("missyou", []);
+        _lsSet("presence_ali", null);
+        _lsSet("presence_aya", null);
+        _lsSet("initialized_fresh_v1", true);
     }
 }
 
