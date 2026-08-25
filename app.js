@@ -261,10 +261,12 @@ function setupNavigation() {
         SoundFX.pop();
         triggerLoveBurstAnim();
         const partner = DataStore.getPartner(currentUser);
+        const myName = currentUser === 'ali' ? 'Ali 💙' : 'Aya 💗';
         await DataStore.add('missyou', {
             from: currentUser,
             to: partner
         });
+        sendRemotePushNotification(partner, 'I Miss You! 💖', `${myName} just sent you love & missed you!`);
         toast('Sent "I Miss You" 💕');
     });
 
@@ -400,9 +402,9 @@ function verifyPasscode() {
         DataStore.setUser(currentUser);
         updateThemeColor(currentUser);
         navigateTo('dashboard');
-        // Prompt for notification permission on login if not yet granted
-        if ('Notification' in window && Notification.permission === 'default') {
-            setTimeout(() => requestNotificationPermission(false), 1200);
+        // Prompt for notification permission & register push subscription on login
+        if ('Notification' in window) {
+            setTimeout(() => registerPushSubscription(currentUser), 1000);
         }
         // Smoothly start music upon login unlock
         startMusicOnUnlock();
@@ -1128,6 +1130,9 @@ async function loadDailyQuestion() {
             user: currentUser,
             text
         });
+        const partner = DataStore.getPartner(currentUser);
+        const myName = currentUser === 'ali' ? 'Ali' : 'Aya';
+        sendRemotePushNotification(partner, 'Question of the Day ❓', `${myName} answered today's couple question! Check it out 💕`);
         toast('Answer saved! 💕');
         loadDailyQuestion();
     });
@@ -1289,6 +1294,7 @@ function attachFormHandlers() {
         const unlockDate = $('#letter-unlock-date')?.value || null;
         if (!content) return;
         const partner = DataStore.getPartner(currentUser);
+        const myName = currentUser === 'ali' ? 'Ali' : 'Aya';
         await DataStore.add('letters', {
             content,
             unlockDate,
@@ -1296,6 +1302,7 @@ function attachFormHandlers() {
             to: partner,
             read: false,
         });
+        sendRemotePushNotification(partner, 'New Love Letter 💌', `A new love letter from ${myName} is waiting for you!`);
         SoundFX.success();
         closeModal();
         loadLetters();
@@ -1385,11 +1392,13 @@ function attachFormHandlers() {
         const content = $('#lovenote-content')?.value.trim();
         if (!content) return;
         const partner = DataStore.getPartner(currentUser);
+        const myName = currentUser === 'ali' ? 'Ali' : 'Aya';
         await DataStore.add('lovenotes', {
             content,
             from: currentUser,
             to: partner,
         });
+        sendRemotePushNotification(partner, 'Sweet Words 💕', `${myName} left a sweet note for you!`);
         SoundFX.pop();
         closeModal();
         loadLoveNotes();
@@ -1460,12 +1469,14 @@ function attachFormHandlers() {
     $('#save-voicenote')?.addEventListener('click', async () => {
         if (!_recordedBase64) return;
         const partner = DataStore.getPartner(currentUser);
+        const myName = currentUser === 'ali' ? 'Ali' : 'Aya';
         await DataStore.add('voicenotes', {
             audio: _recordedBase64,
             duration: _recordSeconds,
             from: currentUser,
             to: partner
         });
+        sendRemotePushNotification(partner, 'Voice Memo 🎙️', `${myName} sent you a voice memo! 💕`);
         SoundFX.success();
         closeModal();
         loadVoiceNotes();
@@ -1704,8 +1715,66 @@ function setupMusic() {
 }
 
 // ===================================================================
-// PUSH & SYSTEM NOTIFICATIONS
+// PUSH & SYSTEM NOTIFICATIONS (With Lock-Screen Apple WebPush)
 // ===================================================================
+const VAPID_PUBLIC_KEY = 'BMfXisPqHXuT66gM_US6VxRCdqn3stJX67xFil_mgUh-jA3HnLXkGxdnLat79jn4V3ytWWo3Bht4i_epCpCvisY';
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function registerPushSubscription(user) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+        }
+        if (sub && user) {
+            await fetch('/api/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'subscribe',
+                    user: user,
+                    subscription: sub.toJSON()
+                })
+            });
+        }
+    } catch (e) {
+        console.warn('Push subscription error:', e);
+    }
+}
+
+async function sendRemotePushNotification(toUser, title, body) {
+    try {
+        await fetch('/api/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send',
+                to: toUser,
+                title: title,
+                body: body,
+                url: '/'
+            })
+        });
+    } catch (e) {
+        console.warn('Remote push delivery failed:', e);
+    }
+}
+
 async function requestNotificationPermission(showToast = true) {
     if (!('Notification' in window)) {
         if (showToast) toast('Notifications not supported in this browser');
@@ -1714,9 +1783,12 @@ async function requestNotificationPermission(showToast = true) {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
+            if (currentUser) {
+                await registerPushSubscription(currentUser);
+            }
             if (showToast) {
                 toast('Notifications enabled! 🔔');
-                sendSystemNotification('Notifications Enabled 💕', 'You will receive alerts when your partner sends love!');
+                sendSystemNotification('Notifications Enabled 💕', 'You will receive alerts on your lock screen!');
             }
             return true;
         } else if (permission === 'denied') {

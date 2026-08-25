@@ -1,7 +1,7 @@
 // ===================================================================
 // AYATI — PWA Service Worker (Offline Cache, Instant Loading & Push)
 // ===================================================================
-const CACHE_NAME = 'ayati-v8';
+const CACHE_NAME = 'ayati-v9';
 const ASSETS = [
     './',
     './index.html',

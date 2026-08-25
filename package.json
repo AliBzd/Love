@@ -1,0 +1,9 @@
+{
+  "name": "ayati",
+  "version": "1.0.0",
+  "description": "Ayati — Our Love Story Web App",
+  "private": true,
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
