@@ -1,7 +1,7 @@
 // ===================================================================
 // AYATI — PWA Service Worker (Offline Cache, Instant Loading & Push)
 // ===================================================================
-const CACHE_NAME = 'ayati-v14';
+const CACHE_NAME = 'ayati-v15';
 const ASSETS = [
     './',
     './index.html',
@@ -10,6 +10,9 @@ const ASSETS = [
     './firebase-config.js',
     './manifest.json',
     './music.mp3',
+    './icon-192.png',
+    './icon-512.png',
+    './apple-touch-icon.png',
     'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;700&display=swap'
 ];
 

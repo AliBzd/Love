@@ -13,8 +13,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Ayati" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23fd79a8'/><stop offset='50%25' stop-color='%236c5ce7'/><stop offset='100%25' stop-color='%231a0a1e'/></linearGradient></defs><rect width='180' height='180' rx='40' fill='url(%23bg)'/><text x='50%25' y='58%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>💕</text></svg>" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
     <link rel="manifest" href="manifest.json" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -84,7 +84,10 @@
             <header class="dash-header">
                 <div>
                     <h1 class="dash-hello" id="dash-hello"></h1>
-                    <p class="dash-days" id="dash-days"></p>
+                    <div class="dash-sub-row">
+                        <p class="dash-days" id="dash-days"></p>
+                        <span class="sync-pill" id="sync-status-pill">☁️ Synced</span>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
@@ -101,11 +104,14 @@
                 </div>
             </button>
 
-            <!-- Partner mood -->
+            <!-- Partner mood & presence -->
             <div class="dash-card partner-mood-card glass" id="dash-mood-card" data-nav="mood" style="cursor: pointer;">
                 <span class="partner-mood-emoji" id="dash-partner-mood">🤍</span>
                 <div class="partner-mood-info">
-                    <p class="partner-mood-name" id="dash-partner-name"></p>
+                    <div class="partner-name-row">
+                        <p class="partner-mood-name" id="dash-partner-name"></p>
+                        <span class="presence-badge" id="dash-partner-presence"><span class="presence-dot offline"></span> Offline</span>
+                    </div>
                     <p class="partner-mood-status" id="dash-partner-status">Not checked in yet</p>
                 </div>
             </div>
@@ -260,94 +266,12 @@
     <div id="view-ourstory" class="view">
         <header class="view-header">
             <button class="back-btn" data-nav="dashboard">←</button>
-            <h2>🌹 For Aya</h2>
+            <h2 id="ourstory-header-title">🌹 Our Story</h2>
         </header>
-        <div class="view-scroll story-scroll">
-
-            <!-- Splash section -->
-            <section class="story-section story-splash">
-                <p class="splash-pre">I made this for you…</p>
-                <div class="calligraphy-wrap">
-                    <svg class="calligraphy-svg" viewBox="0 0 500 120" aria-label="Aya">
-                        <defs>
-                            <linearGradient id="calliGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#fd79a8" />
-                                <stop offset="50%" stop-color="#fab1a0" />
-                                <stop offset="100%" stop-color="#f9ca24" />
-                            </linearGradient>
-                        </defs>
-                        <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
-                            class="calligraphy-text" fill="url(#calliGrad)">
-                            Aya
-                        </text>
-                    </svg>
-                    <div class="calligraphy-glow"></div>
-                </div>
-            </section>
-
-            <!-- Love letter -->
-            <section class="story-section">
-                <div class="story-letter glass">
-                    <p class="letter-date">July 5, 2026</p>
-                    <h3 class="letter-greeting">My dearest Aya,</h3>
-                    <p class="letter-body">
-                        Every day with you feels like a dream I never want to wake up from.
-                        You are my sunshine, my brightest star — the reason my heart beats.
-                    </p>
-                    <p class="letter-body">
-                        Your smile alone lights up my entire world, and your voice is my sweetest melody.
-                        With every single heartbeat, I find myself loving you more than ever before.
-                    </p>
-                    <p class="letter-sign">Yours always & forever&ensp;♥</p>
-                </div>
-            </section>
-
-            <!-- Reasons -->
-            <section class="story-section">
-                <h3 class="story-heading">Why I Love You</h3>
-                <div class="story-reasons">
-                    <div class="story-reason glass">
-                        <span>✨</span>
-                        <p>Your smile lights up my whole world</p>
-                    </div>
-                    <div class="story-reason glass">
-                        <span>🌙</span>
-                        <p>You make every ordinary moment feel magical</p>
-                    </div>
-                    <div class="story-reason glass">
-                        <span>🦋</span>
-                        <p>Every time I see you, I still get butterflies</p>
-                    </div>
-                    <div class="story-reason glass">
-                        <span>🌹</span>
-                        <p>Your kindness inspires me to be a better person</p>
-                    </div>
-                    <div class="story-reason glass">
-                        <span>💫</span>
-                        <p>You are my best friend and the greatest love of my life</p>
-                    </div>
-                    <div class="story-reason glass">
-                        <span>🤍</span>
-                        <p>With you, I have finally found my home</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Promise -->
-            <section class="story-section story-promise">
-                <div class="big-heart">
-                    <svg viewBox="0 0 512 512" class="heart-svg">
-                        <path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z" />
-                    </svg>
-                </div>
-                <h3 class="promise-title">My Promise to You</h3>
-                <p class="promise-text">
-                    I promise to cherish you on your best days and stand by you through the hardest.<br />
-                    I promise to be your calm in every storm, and your warmth in every winter.<br />
-                    I promise to never stop choosing you — today, tomorrow, and forever.
-                </p>
-                <p class="promise-sign">— With all my love, for Aya 💗</p>
-            </section>
+        <div class="view-scroll story-scroll" id="ourstory-content">
+            <!-- Rendered dynamically by renderOurStory(currentUser) in app.js -->
+        </div>
+    </div>
         </div>
     </div>
 

@@ -344,6 +344,43 @@ const DataStore = {
         return moods.find(m => m.date === today) || null;
     },
 
+    // ─── Presence helpers ─────────────────────────────────
+    async updatePresence(user) {
+        if (!user) return;
+        const now = Date.now();
+        _lsSet(`presence_${user}`, { lastSeen: now, user });
+        if (_firebaseReady) {
+            try {
+                await _db.collection("presence").doc(user).set({
+                    lastSeen: now,
+                    user,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.warn("Firestore updatePresence error:", e);
+            }
+        }
+    },
+
+    listenPresence(user, callback) {
+        if (!user) return null;
+        if (_firebaseReady) {
+            try {
+                return _db.collection("presence").doc(user).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        callback(doc.data());
+                    } else {
+                        callback(null);
+                    }
+                }, (e) => console.warn("Firestore presence listener error:", e));
+            } catch (e) {
+                console.warn("Presence listen setup error:", e);
+            }
+        }
+        callback(_lsGet(`presence_${user}`) || null);
+        return null;
+    },
+
     // ─── Love quotes ─────────────────────────────────────
     getRandomQuote() {
         return DEFAULT_LOVE_QUOTES[Math.floor(Math.random() * DEFAULT_LOVE_QUOTES.length)];

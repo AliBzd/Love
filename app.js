@@ -39,6 +39,15 @@ const $$ = (sel) => document.querySelectorAll(sel);
     setupMusic();
     initHeartsCanvas();
     setupRealtimeNotifications();
+    setupSyncStatusPill();
+    setupTapHearts();
+
+    // Heartbeat presence update every 45s while page is visible
+    setInterval(() => {
+        if (currentUser && document.visibilityState === 'visible') {
+            DataStore.updatePresence(currentUser);
+        }
+    }, 45000);
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
@@ -189,6 +198,7 @@ function navigateTo(viewId, pushState = true) {
         case 'lovenotes': loadLoveNotes(); break;
         case 'daily': loadDailyQuestion(); break;
         case 'voicenotes': loadVoiceNotes(); break;
+        case 'ourstory': renderOurStory(); break;
     }
 }
 
@@ -439,7 +449,10 @@ function loadDashboard() {
     const days = Math.floor(diff / 86400000);
     $('#dash-days').textContent = `${days} days of love together 💕`;
 
-    // Partner mood
+    // Update presence
+    DataStore.updatePresence(currentUser);
+
+    // Partner mood & presence
     $('#dash-partner-name').textContent = `${partnerName} is feeling`;
     DataStore.getTodayMood(partner).then(mood => {
         if (mood) {
@@ -448,6 +461,33 @@ function loadDashboard() {
         } else {
             $('#dash-partner-mood').textContent = '🤍';
             $('#dash-partner-status').textContent = 'Not checked in yet';
+        }
+    });
+
+    // Partner presence listener
+    DataStore.listenPresence(partner, (pres) => {
+        const badge = $('#dash-partner-presence');
+        if (!badge) return;
+        if (!pres || !pres.lastSeen) {
+            badge.className = 'presence-badge';
+            badge.innerHTML = '<span class="presence-dot offline"></span> Offline';
+            return;
+        }
+        const pDiff = Date.now() - pres.lastSeen;
+        if (pDiff < 150000) { // < 2.5 min
+            badge.className = 'presence-badge online';
+            badge.innerHTML = '<span class="presence-dot"></span> Online now 💕';
+        } else if (pDiff < 3600000) { // < 1 hour
+            const mins = Math.max(1, Math.floor(pDiff / 60000));
+            badge.className = 'presence-badge';
+            badge.innerHTML = `<span class="presence-dot offline"></span> Active ${mins}m ago`;
+        } else if (pDiff < 86400000) { // < 24 hours
+            const hrs = Math.floor(pDiff / 3600000);
+            badge.className = 'presence-badge';
+            badge.innerHTML = `<span class="presence-dot offline"></span> Active ${hrs}h ago`;
+        } else {
+            badge.className = 'presence-badge';
+            badge.innerHTML = '<span class="presence-dot offline"></span> Offline';
         }
     });
 
@@ -1952,4 +1992,171 @@ function setupRealtimeNotifications() {
             $('#dash-partner-status').textContent = 'Today';
         }
     });
+}
+
+// ===================================================================
+// OUR STORY (Dynamic For Ali / For Aya)
+// ===================================================================
+function renderOurStory() {
+    const isAli = currentUser === 'ali';
+    const partnerName = isAli ? 'Aya' : 'Ali';
+    const titleEl = $('#ourstory-header-title');
+    const container = $('#ourstory-content');
+    if (!container) return;
+
+    if (titleEl) {
+        titleEl.textContent = isAli ? '🌹 For Aya' : '🌹 For Ali';
+    }
+
+    const name = isAli ? 'Aya' : 'Ali';
+    const letterBody = isAli
+        ? `<p class="letter-body">
+                Every day with you feels like a dream I never want to wake up from.
+                You are my sunshine, my brightest star — the reason my heart beats.
+           </p>
+           <p class="letter-body">
+                Your smile alone lights up my entire world, and your voice is my sweetest melody.
+                With every single heartbeat, I find myself loving you more than ever before.
+           </p>`
+        : `<p class="letter-body">
+                You are my safe haven, my protector, and the greatest love of my life.
+                Thank you for always making me feel cherished, safe, and deeply loved.
+           </p>
+           <p class="letter-body">
+                In your arms, the whole world disappears and all that matters is you and me.
+                I fall in love with you more and more every single day.
+           </p>`;
+
+    const reasons = isAli ? [
+        { icon: '✨', text: 'Your smile lights up my whole world' },
+        { icon: '🌙', text: 'You make every ordinary moment feel magical' },
+        { icon: '🦋', text: 'Every time I see you, I still get butterflies' },
+        { icon: '🌹', text: 'Your kindness inspires me to be a better person' },
+        { icon: '💫', text: 'You are my best friend and the greatest love of my life' },
+        { icon: '🤍', text: 'With you, I have finally found my home' }
+    ] : [
+        { icon: '✨', text: 'Your warm embrace makes all my worries fade away' },
+        { icon: '💙', text: 'You protect my heart and make me feel so safe' },
+        { icon: '🌟', text: 'Your laughter is my favorite sound in the universe' },
+        { icon: '🌹', text: 'You believe in me even when I doubt myself' },
+        { icon: '💫', text: 'You make my heart race with just a single look' },
+        { icon: '🤍', text: 'You are my prince, my rock, and my forever home' }
+    ];
+
+    const promiseText = isAli
+        ? `I promise to cherish you on your best days and stand by you through the hardest.<br />
+           I promise to be your calm in every storm, and your warmth in every winter.<br />
+           I promise to never stop choosing you — today, tomorrow, and forever.`
+        : `I promise to love and honor you with all my heart, mind, and soul.<br />
+           I promise to always be your peace, your biggest cheerleader, and your loyal partner.<br />
+           I promise to hold your hand through everything life brings our way.`;
+
+    const signText = isAli ? '— With all my love, for Aya 💗' : '— With all my heart, for Ali 💙';
+
+    container.innerHTML = `
+        <!-- Splash section -->
+        <section class="story-section story-splash">
+            <p class="splash-pre">I made this for you…</p>
+            <div class="calligraphy-wrap">
+                <svg class="calligraphy-svg" viewBox="0 0 500 120" aria-label="${name}">
+                    <defs>
+                        <linearGradient id="calliGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#fd79a8" />
+                            <stop offset="50%" stop-color="#fab1a0" />
+                            <stop offset="100%" stop-color="#f9ca24" />
+                        </linearGradient>
+                    </defs>
+                    <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
+                        class="calligraphy-text" fill="url(#calliGrad)">
+                        ${name}
+                    </text>
+                </svg>
+                <div class="calligraphy-glow"></div>
+            </div>
+        </section>
+
+        <!-- Love letter -->
+        <section class="story-section">
+            <div class="story-letter glass">
+                <p class="letter-date">July 5, 2026</p>
+                <h3 class="letter-greeting">My dearest ${partnerName},</h3>
+                ${letterBody}
+                <p class="letter-sign">Yours always & forever&ensp;♥</p>
+            </div>
+        </section>
+
+        <!-- Reasons -->
+        <section class="story-section">
+            <h3 class="story-heading">Why I Love You</h3>
+            <div class="story-reasons">
+                ${reasons.map(r => `
+                    <div class="story-reason glass">
+                        <span>${r.icon}</span>
+                        <p>${r.text}</p>
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+
+        <!-- Promise -->
+        <section class="story-section story-promise">
+            <div class="big-heart">
+                <svg viewBox="0 0 512 512" class="heart-svg">
+                    <path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z" />
+                </svg>
+            </div>
+            <h3 class="promise-title">My Promise to You</h3>
+            <p class="promise-text">${promiseText}</p>
+            <p class="promise-sign">${signText}</p>
+        </section>
+    `;
+}
+
+// ===================================================================
+// CLOUD SYNC PILL & TAP PARTICLES
+// ===================================================================
+function setupSyncStatusPill() {
+    const pill = $('#sync-status-pill');
+    if (!pill) return;
+
+    function updateStatus() {
+        if (navigator.onLine) {
+            pill.className = 'sync-pill';
+            pill.innerHTML = '☁️ Synced';
+        } else {
+            pill.className = 'sync-pill offline';
+            pill.innerHTML = '📱 Offline mode';
+        }
+    }
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus();
+}
+
+function setupTapHearts() {
+    const emojis = ['💖', '✨', '💕', '🌸', '💫', '🤍'];
+    function spawnTapHeart(x, y) {
+        const heart = document.createElement('span');
+        heart.className = 'tap-particle-heart';
+        heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        heart.style.left = `${x}px`;
+        heart.style.top = `${y}px`;
+        heart.style.fontSize = `${Math.random() * 8 + 16}px`;
+        heart.style.setProperty('--particle-rot', `${(Math.random() - 0.5) * 40}deg`);
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1200);
+    }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('button, input, textarea, a, .key-btn, .modal-card')) return;
+        spawnTapHeart(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('touchstart', (e) => {
+        if (e.target.closest('button, input, textarea, a, .key-btn, .modal-card')) return;
+        if (e.touches && e.touches.length === 1) {
+            spawnTapHeart(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: true });
 }

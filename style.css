@@ -2154,3 +2154,100 @@ body {
     font-size: 0.82rem;
     margin-top: 0.8rem;
 }
+
+/* ===================================================================
+   ENHANCEMENTS: Presence, Sync Pill, & Tap Particle Hearts
+   =================================================================== */
+.dash-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.2rem;
+}
+
+.sync-pill {
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(46, 213, 115, 0.12);
+    border: 1px solid rgba(46, 213, 115, 0.25);
+    color: #2ed573;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.sync-pill.offline {
+    background: rgba(255, 71, 87, 0.12);
+    border-color: rgba(255, 71, 87, 0.25);
+    color: #ff4757;
+}
+
+.partner-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.presence-badge {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.presence-badge.online {
+    color: #2ed573;
+    font-weight: 500;
+}
+
+.presence-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #2ed573;
+    display: inline-block;
+    box-shadow: 0 0 6px rgba(46, 213, 115, 0.8);
+    animation: presencePulse 2s infinite ease-in-out;
+}
+
+.presence-dot.offline {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: none;
+    animation: none;
+}
+
+@keyframes presencePulse {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px rgba(46, 213, 115, 1); }
+}
+
+/* Floating tap particle heart */
+.tap-particle-heart {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    user-select: none;
+    animation: floatUpAndFade 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes floatUpAndFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.6) rotate(0deg);
+    }
+    50% {
+        opacity: 0.9;
+        transform: translate(-50%, -120%) scale(1.2) rotate(var(--particle-rot, 15deg));
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -200%) scale(1.4) rotate(var(--particle-rot, -15deg));
+    }
+}
